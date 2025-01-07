@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paranoia Chat</title>
+    <script src="paranoia.js" defer></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100%;
+            padding: 20px;
+            text-align: center;
+            position:absolute;
+            z-index: 999;
+            top:0;
+            left:0;
+            background-color: #121212;
+        }
+
+        .step h1 {
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .step input, .step textarea, .step button, .step select {
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            outline: none;
+        }
+
+        .step input, .step textarea, .step select {
+            width: 80%;
+            background-color: #333333;
+            color: #e0e0e0;
+        }
+
+        .step button {
+            background-color: #4a90e2;
+            color: white;
+            cursor: pointer;
+        }
+
+        .step button:hover {
+            background-color: #357abd;
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100%;
+            position:absolute;
+            z-index: 999;
+            top:0;
+            left:0;
+            background-color: #121212;
+        }
+
+        .loading p {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        .error {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100%;
+            position:absolute;
+            z-index: 999;
+            top:0;
+            left:0;
+            background-color: #121212;
+        }
+
+        .error p {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #f35050;
+        }
+
+        header {
+            display: flex;
+            flex-direction: column;
+            background-color: #1f1f1f;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        header .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+        }
+
+        header .status-bar {
+            text-align: center;
+            padding: 5px 0;
+            font-size: 12px;
+            background-color: #282828;
+            color: #a0a0a0;
+        }
+
+        header .icons {
+            display: flex;
+            gap: 15px;
+        }
+
+        header .icons i {
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .message.sent {
+            align-self: flex-end;
+            background-color: #4a90e2;
+            color: white;
+        }
+
+        .message.received {
+            align-self: flex-start;
+            background-color: #333333;
+            color: #e0e0e0;
+        }
+
+        footer {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #1f1f1f;
+            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        footer .input-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            background-color: #333333;
+            border-radius: 20px;
+            padding: 5px 10px;
+        }
+
+        footer .input-container textarea {
+            flex: 1;
+            background-color: transparent;
+            color: #e0e0e0;
+            border: none;
+            outline: none;
+            font-size: 14px;
+            resize: none;
+            max-height: calc(1.5em * 4); /* Altura máxima de 4 líneas */
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+
+        footer button {
+            padding: 10px;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        footer button:hover {
+            background-color: #357abd;
+        }
+
+        .hide {
+            display: none !important;
+        }
+
+        .small-option {
+            font-size: 12px;
+            color: rgb(56, 55, 55);
+        }
+
+    </style>
+</head>
+<body>
+    
+ 
+    <header>
+        <div class="top-bar">
+            <div>Paranoia Chat</div>
+            <div class="icons">
+                <i class="icon-settings">⚙️</i>
+                <i class="icon-logout">🚪</i>
+            </div>
+        </div>
+        <div id="chatStatus" class="status-bar">Conectado</div>
+    </header>
+
+    <main id="chatContent">
+        <div class="message received">Hola, ¿cómo estás?</div>
+        <div class="message sent">¡Hola! Muy bien, ¿y tú?</div>
+        <div class="message received">Todo en orden. 😊</div>
+    </main>
+
+    <footer>
+        <div class="input-container">
+            <textarea id="chatText" placeholder="Escribe un mensaje..." rows="1"></textarea>
+            <button id="chatSend">➤</button>
+        </div>
+    </footer> 
+
+
+    <div id="step1" class="step">
+        <h1>Paranoia Chat</h1>
+        <button id="newConnection">Nueva conexión</button>
+        <button id="connectToUser">Conectarse a un usuario</button>
+    </div>
+
+    <div id="step2New" class="step hide">
+        <h1>Nueva Conexión</h1>
+        <input id="newPassword" type="password" placeholder="Contraseña">
+        <p id="newChangeProvider" class="small-option">Change STUN server</p>
+        <input id="newProvider" class="hide" type="text" placeholder="STUN server udl stun:...">
+        <button id="generateConnection">Generar conexión</button>
+    </div>
+
+    <div id="step2Connect" class="step hide">
+        <h1>Conectarse a un usuario</h1>
+        <textarea id="connectData" rows="4" placeholder="Datos de conexión"></textarea>
+        <input id="connectPassword" type="password" placeholder="Contraseña">
+        <p id="connectChangeProvider" class="small-option">Change STUN server</p>
+        <input id="connectProvider" class="hide" type="text" placeholder="STUN server udl stun:...">
+        <button id="connect">Conectar</button>
+    </div>
+
+    <div id="loading" class="loading hide">
+        <div class="spinner"></div>
+        <p id="loadingStatus">Cargando...</p>
+    </div>
+
+    <div id="error" class="error step hide"> 
+        <p id="errorText">Error!</p>
+        <button id="restart">Restart</button>
+    </div>
+</body>
+</html>
