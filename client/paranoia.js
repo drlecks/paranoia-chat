@@ -440,10 +440,12 @@ class Connection
 
     onSocketError(err) {
         console.error("Socket error", err);
+        steps.showError("Connection error" );
     }
 
     onSocketClose() {
-        console.log("Socket closed");
+        console.log("Connection closed");
+        steps.showError("Connection closed" );
     }
 }
  

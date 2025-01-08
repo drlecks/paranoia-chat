@@ -28,9 +28,7 @@ class Chat {
 class Utils {
     // Función para convertir Uint8Array a una cadena hexadecimal
     static bytesToHex(bytes) {
-        return Array.from(bytes)
-            .map((byte) => byte.toString(16).padStart(2, '0'))
-            .join('');
+        return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, '0')).join('');
     }
 
     // Función para convertir una cadena hexadecimal a Uint8Array
@@ -330,18 +328,13 @@ server.on('connection', (ws) => {
                 if (type === EToServer.REGISTER) {
                     const chat = new Chat();
                     // Generate a secure random 32-byte token in hexadecimal format
-                    chat.token = crypto.randomBytes(32).toString('hex');
-                    chat.client1 = ws;
-                    chats[chat.token] = chat;
+                    chat.token          = crypto.randomBytes(32).toString('hex');
+                    chat.client1        = ws;
+                    chats[chat.token]   = chat;
 
-                    const clientKey = await UtilsAsymetric.importPublicKey(payload);
-                    const encryptedSend = await UtilsAsymetric.encryptWithPublicKey(
-                        clientKey,
-                        token
-                    );
-                    const hexSend = Array.from(encryptedSend)
-                        .map((b) => b.toString(16).padStart(2, '0'))
-                        .join('');
+                    const clientKey     = await UtilsAsymetric.importPublicKey(payload);
+                    const encryptedSend = await UtilsAsymetric.encryptWithPublicKey(clientKey, chat.token);
+                    const hexSend       = Array.from(encryptedSend).map((b) => b.toString(16).padStart(2, '0')).join('');
 
                     clog(`Client registered with token: ${token}`);
                     await returnDataToClient(ws, EFromServer.REGISTER_OK, hexSend);
@@ -354,11 +347,7 @@ server.on('connection', (ws) => {
                     }
 
                     chat.client2 = ws;
-                    await returnDataToClient(
-                        chat.client1,
-                        EFromServer.LINK_DATA,
-                        data.data
-                    );
+                    await returnDataToClient(chat.client1, EFromServer.LINK_DATA, data.data);
                 } else if (type === EToServer.MESSAGE) {
                     const { res, chat, data, error } = getAllFromPayload(payload);
                     if (!res) {
@@ -368,21 +357,13 @@ server.on('connection', (ws) => {
                     }
 
                     const sendClient = ws == chat.client1 ? chat.client2 : chat.client1;
-                    await returnDataToClient(
-                        null,
-                        sendClient,
-                        EFromServer.MESSAGE,
-                        data.data
-                    );
+                    await returnDataToClient(null, sendClient, EFromServer.MESSAGE, data.data );
                 }
             })();
         } catch (err) {
             cerror('Error processing message:', err);
             ws.send(
-                JSON.stringify({
-                    status: EFromServer.ERROR,
-                    message: 'Invalid message. ' + err,
-                })
+                JSON.stringify({status: EFromServer.ERROR, message: 'Invalid message. ' + err})
             );
         }
     });
