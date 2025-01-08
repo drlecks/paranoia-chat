@@ -336,7 +336,7 @@ server.on('connection', (ws) => {
                     const encryptedSend = await UtilsAsymetric.encryptWithPublicKey(clientKey, chat.token);
                     const hexSend       = Array.from(encryptedSend).map((b) => b.toString(16).padStart(2, '0')).join('');
 
-                    clog(`Client registered with token: ${token}`);
+                    clog(`Client registered with token: ${chat.token}`);
                     await returnDataToClient(ws, EFromServer.REGISTER_OK, hexSend);
                 } else if (type === EToServer.LINK) {
                     const { res, chat, data, error } = getAllFromPayload(payload);
