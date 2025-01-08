@@ -106,6 +106,42 @@ class Utils {
         return decoder.decode(plaintext);
     }
 
+    static async encryptSymetricData(sendData, pass) {    
+        const raw = JSON.stringify(sendData);
+
+        // Derivar clave
+        const salt = (new Date()).toLocaleString();
+        const key = await Utils.deriveKey(pass, salt); 
+
+        // Cifrar texto
+        const { ciphertext, iv } = await Utils.encryptText(key, raw);
+        const res = btoa(iv) + ":" + btoa(salt) + ":" + Utils.bytesToHex(ciphertext);
+
+        return btoa(res);
+    }
+
+    static async readSymetricData(pass, dataString) { 
+		const parts = atob(dataString).split(":");
+
+		if (parts.length < 3) { 
+			return null;
+		}
+
+        //parse other data   
+        const iv            = new Uint8Array(atob(parts[0]).split(","));
+        const salt          = atob(parts[1]);
+        const ciphertext    = Utils.hexToBytes(parts[2]);
+
+        // Derivar clave 
+        const key = await Utils.deriveKey(pass, salt);
+
+        // Descifrar texto
+        const textoDescifrado = await Utils.decryptText(key, ciphertext, iv); 
+        const otherData = JSON.parse(textoDescifrado);  
+        return otherData != null ? otherData : textoDescifrado;
+    }
+
+
     static isLocalIp(ip) {
         const parts = ip.split('.'); // Dividir la IP en partes por los puntos
 
@@ -225,6 +261,45 @@ class UtilsAsymetric {
         return decoder.decode(plaintext);
     }
 
+    static async generateSignKeyPair() {
+        const keyPair = await crypto.subtle.generateKey(
+            {
+                name: "RSA-PSS",
+                modulusLength: 2048,
+                publicExponent: new Uint8Array([1, 0, 1]), // 65537
+                hash: "SHA-256",
+            },
+            true, // Exportable
+            ["sign", "verify"] // Usos de las claves
+        );
+        return keyPair;
+    }
+
+    static async importPublicSignKey(base64Key) {
+        // Decodificar la clave base64 a ArrayBuffer
+        const binaryKey = atob(base64Key);
+        const arrayBuffer = new ArrayBuffer(binaryKey.length);
+        const view = new Uint8Array(arrayBuffer);
+
+        for (let i = 0; i < binaryKey.length; i++) {
+            view[i] = binaryKey.charCodeAt(i);
+        }
+
+        // Importar la clave pública usando el formato 'spki'
+        const publicKey = await crypto.subtle.importKey(
+            'spki', // Formato de la clave
+            arrayBuffer, // La clave exportada en ArrayBuffer
+            {
+                name: 'RSA-PSS', // O el nombre del algoritmo que vayas a usar
+                hash: 'SHA-256', // Hash a utilizar
+            },
+            true, // Si la clave es extractable
+            ['verify'] // Operaciones permitidas con la clave
+        );
+
+        return publicKey; // Retorna la CryptoKey importada
+    }
+
     // Firmar datos con clave privada
     static async signWithPrivateKey(privateKey, plaintext) {
         const encoder = new TextEncoder();
@@ -261,6 +336,22 @@ class UtilsAsymetric {
 
         return isValid; // Devuelve true si la firma es válida, false en caso contrario
     }
+
+    static async hybridEncrypt(publicKey, textData) {
+        const secret = crypto.randomBytes(64).toString('hex');  
+        const encryptedSecret   = await UtilsAsymetric.encryptWithPublicKey(publicKey, secret);
+        const hexSecret         = Array.from(encryptedSecret).map((b) => b.toString(16).padStart(2, '0')).join(''); 
+        const encryptedData     = await Utils.encryptSymetricData(textData, secret);
+
+        return { secret: hexSecret, packet: encryptedData};
+    }
+
+    static async hybridDecrypt(privateKey, {secret, packet}) { 
+        const secretDec = await UtilsAsymetric.decryptWithPrivateKey(privateKey, Utils.hexToBytes(secret));   
+        const received  = await Utils.readSymetricData(secretDec, packet);    
+
+        return received;
+    }
 }
 
 // Store registered clients with their tokens
@@ -273,47 +364,46 @@ function cerror(message) {
     if (doLog) console.error(message);
 }
 
-async function returnDataToClient(ws, status, dataText) {
-    const sendData = { result: dataText, sign: '' };
-    sendData.sign = await UtilsAsymetric.signWithPrivateKey(
-        myKey.privateKey,
-        dataText
-    );
-    ws.send(JSON.stringify({ status: status, rsult: dataText }));
+async function returnDataToClient(ws, status, dataText) { 
+    const sign = await UtilsAsymetric.signWithPrivateKey(mySignKey.privateKey, dataText);
+    ws.send(JSON.stringify({ status: status, sign: Utils.bytesToHex(sign), result: dataText }));
 }
 
-async function getAllFromPayload(payload) {
-    var res = true;
-    var error = '';
-    var chat = null;
-
-    const decryptedData = await UtilsAsymetric.decryptWithPrivateKey(
-        myKey.privateKey,
-        Utils.hexToBytes(payload)
-    );
-    const data = JSON.parse(decryptedData);
-
-    // Validate the token format (32-byte hex string)
-    if (!/^[a-f0-9]{64}$/.test(data.token)) {
-        res = false;
-        error = 'Invalid token format received: ' + data.token;
-    } else if (!chats[data.token]) {
-        res = false;
-        error = 'Token not found or client disconnected: ' + data.token;
+async function getAllFromReceived(received) {
+    const res = {
+        success: true,
+        error: '',
+        chat: null,
+        data: null
+    }; 
+    res.data = await UtilsAsymetric.hybridDecrypt( myEncryptKey.privateKey, received );  
+    
+    // Validate the token format
+    if (!/^[a-f0-9]{128}$/.test(res.data.token)) {
+        res.success = false;
+        res.error = 'Invalid token format received';
+        cerror(res.data);
+        cerror(res.data.token);
+    } else if (!chats[res.data.token]) {
+        res.success = false;
+        res.error = 'Token not found or client disconnected';
     } else {
-        res = true;
-        chat = chats[data.token];
-    }
+        res.success = true;
+        res.chat = chats[res.data.token];
+    } 
 
-    return { res, chat, data, error };
+    return res;
 }
 
 clog(`WebSocket server running on port ${port}`);
 
-var myKey = {};
+var myEncryptKey = {};
+var mySignKey = {};
 (async () => {
-    myKey = await UtilsAsymetric.generateKeyPair();
-    myKey.key64 = await UtilsAsymetric.exportPublicKey(myKey.publicKey);
+    myEncryptKey        = await UtilsAsymetric.generateKeyPair();
+    myEncryptKey.key64  = await UtilsAsymetric.exportPublicKey(myEncryptKey.publicKey);
+    mySignKey           = await UtilsAsymetric.generateSignKeyPair();
+    mySignKey.key64     = await UtilsAsymetric.exportPublicKey(mySignKey.publicKey);
     clog(`Key generated`);
 })().catch(cerror);
 
@@ -322,42 +412,46 @@ server.on('connection', (ws) => {
 
     ws.on('message', (message) => {
         try {
-            (async () => {
-                const { type, payload } = JSON.parse(message);
+            (async () => { 
+                const received  = JSON.parse(message);
+                const type      = received.type;
 
                 if (type === EToServer.REGISTER) {
                     const chat = new Chat();
-                    // Generate a secure random 32-byte token in hexadecimal format
-                    chat.token          = crypto.randomBytes(32).toString('hex');
+                    chat.token          = crypto.randomBytes(64).toString('hex');
                     chat.client1        = ws;
                     chats[chat.token]   = chat;
-
-                    const clientKey     = await UtilsAsymetric.importPublicKey(payload);
-                    const encryptedSend = await UtilsAsymetric.encryptWithPublicKey(clientKey, chat.token);
-                    const hexSend       = Array.from(encryptedSend).map((b) => b.toString(16).padStart(2, '0')).join('');
+ 
+                    const sendData = {
+                        token:      chat.token,
+                        encryptKey: myEncryptKey.key64,
+                        signKey:    mySignKey.key64,
+                    }    
+                    const clientKey = await UtilsAsymetric.importPublicKey(received.key); 
+                    const send      = await UtilsAsymetric.hybridEncrypt(clientKey, sendData)  
 
                     clog(`Client registered with token: ${chat.token}`);
-                    await returnDataToClient(ws, EFromServer.REGISTER_OK, hexSend);
+                    await returnDataToClient(ws, EFromServer.REGISTER_OK, JSON.stringify(send));
                 } else if (type === EToServer.LINK) {
-                    const { res, chat, data, error } = getAllFromPayload(payload);
-                    if (!res) {
-                        await returnDataToClient(ws, EFromServer.ERROR, error);
-                        cerror(error);
-                        return;
+                    let res = await getAllFromReceived(received); 
+                    if (!res.success) { 
+                        await returnDataToClient(ws, EFromServer.ERROR, btoa(res.error));
+                        cerror("error: " + res.error); 
                     }
-
-                    chat.client2 = ws;
-                    await returnDataToClient(chat.client1, EFromServer.LINK_DATA, data.data);
+                    else {
+                        res.chat.client2 = ws;
+                        await returnDataToClient(res.chat.client1, EFromServer.LINK_DATA, JSON.stringify(res.data));
+                    } 
                 } else if (type === EToServer.MESSAGE) {
-                    const { res, chat, data, error } = getAllFromPayload(payload);
-                    if (!res) {
-                        await returnDataToClient(ws, EFromServer.ERROR, error);
-                        cerror(error);
-                        return;
+                    let res = await getAllFromReceived(received);
+                    if (!res.success) {
+                        await returnDataToClient(ws, EFromServer.ERROR, btoa(res.error));
+                        cerror("error: " + res.error); 
                     }
-
-                    const sendClient = ws == chat.client1 ? chat.client2 : chat.client1;
-                    await returnDataToClient(null, sendClient, EFromServer.MESSAGE, data.data );
+                    else {
+                        const sendClient = ws == res.chat.client1 ? res.chat.client2 : res.chat.client1;
+                        await returnDataToClient(sendClient, EFromServer.MESSAGE, JSON.stringify(res.data) );
+                    } 
                 }
             })();
         } catch (err) {
@@ -373,12 +467,12 @@ server.on('connection', (ws) => {
         // Remove the disconnected client from the list
         Object.keys(chats).forEach((key) => {
             if (chats[key].client1 === ws) {
-                if (chats[key].client2)
+                if (chats[key].client2 === ws)
                     chats[key].client2.close(1000, 'Other client disconnected');
                 delete chats[key];
                 clog(`Client with token ${key} removed`);
             } else if (chats[key].client2 === ws) {
-                if (chats[key].client1)
+                if (chats[key].client1 === ws)
                     chats[key].client1.close(1000, 'Other client disconnected');
                 delete chats[key];
                 clog(`Client with token ${key} removed`);
