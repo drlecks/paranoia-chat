@@ -3,8 +3,8 @@ var steps = null;
 var connection = null;
 
 document.body.onload = function() {
-    steps = new StepManager();
     connection = new Connection();
+    steps = new StepManager(); 
 };
 
 
@@ -53,7 +53,10 @@ class StepManager
         this.stepJoin_ApiChange = document.getElementById('connectChangeProvider');
         this.stepJoin_Connect = document.getElementById('connect');
 
+		this.stepLoading_Spinner = document.getElementById('loadingSpinner');
         this.stepLoading_Status = document.getElementById('loadingStatus');
+		this.stepLoading_CopyContainer = document.getElementById('loadingCopyContainer');
+		this.stepLoading_CopyText = document.getElementById('loadingCopyText');
 
         this.stepError_Restart = document.getElementById('restart');
         this.stepError_Text = document.getElementById('errorText');
@@ -73,11 +76,16 @@ class StepManager
         this.stepNew_ApiChange.addEventListener('click', () => { Utils.toggleClass(this.stepNew_ApiChange, 'hide'); Utils.toggleClass(this.stepNew_Api, 'hide');} , false);
         this.stepJoin_ApiChange.addEventListener('click', () => { Utils.toggleClass(this.stepJoin_ApiChange, 'hide'); Utils.toggleClass(this.stepJoin_Api, 'hide');} , false);
 
-        this.stepChat_Send.addEventListener('click', this.onButton_StepChat_Send.bind(this) , false);
+		this.stepLoading_CopyContainer.addEventListener('click', this.onButton_StepLoading_CopyContainer.bind(this) , false);
+		
 
+        this.stepChat_Send.addEventListener('click', this.onButton_StepChat_Send.bind(this) , false);
+		 
+        this.stepNew_Api.value = connection.socketUrl;
+        this.stepJoin_Api.value = connection.socketUrl;
         this.stepChat_Status.innerHTML = "Hello!"; 
         this.stepChat_Content.innerHTML = ""; 
-    }
+    }  
 
     showStepStart() {
         Utils.removeClass(this.containerStepStart, 'hide');
@@ -120,7 +128,17 @@ class StepManager
 
         if (status == '')   this.stepLoading_Status.innerHTML = "Loading...";
         else                this.stepLoading_Status.innerHTML = status;
+ 
+		Utils.removeClass(this.stepLoading_Spinner, 'hide');
+		Utils.addClass(this.stepLoading_CopyContainer, 'hide');
     }
+
+	showLoadingCopy(copyText) {
+		this.stepLoading_CopyText.innerText = copyText;
+
+		Utils.addClass(this.stepLoading_Spinner, 'hide');
+		Utils.removeClass(this.stepLoading_CopyContainer, 'hide');
+	}
 
     showError(text = '') {
         Utils.removeClass(this.containerError, 'hide');
@@ -170,13 +188,18 @@ class StepManager
         this.showStepStart();
     }
 
+	onButton_StepLoading_CopyContainer(){
+		
+		Utils.copyToClipboard(this.stepLoading_CopyText.innerText);
+	}
+
     onButton_StepChat_Send() {
         const text = this.stepChat_Text.value;
         this.stepChat_Text.value = ""; 
 
         connection.sendPeerMessage(text);
         this.addMessage(true, text); 
-    }
+    } 
 
     addMessage(isMine, text) {
         const ele = document.createElement("div");
@@ -190,132 +213,79 @@ class StepManager
 class EToServer {
     static REGISTER = "r";
     static LINK     = "l"; 
+    static MESSAGE  = "m";
 } 
 
 class EFromServer {
     static ERROR        = "er";
     static REGISTER_OK  = "ro";
-    static LINK_DATA    = "ld"; 
+    static LINK_DATA    = "ld";
+    static CLOSE        = "cl"; 
+    static MESSAGE      = "me"; 
 } 
 
 
 class Connection
-{
-    // Servidor STUN público de Google
-    configuration = {
-        iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' },
-        ],
-        iceCandidatePoolSize: 10 
-    }; 
-
+{  
     socketUrl = "wss://paranoia-chat.onrender.com";
+    socket = null;
+    sessionToken = "";
+    success = false;
 
     myKey = {
         publicKey: "",
         privateKey: "",
-    };
-
-    myData = {
-        ip: "",
-        port: 0,
-        sdp: "",
-        ice: [],
-        public64: "",
-        linkToken: "",
-    };
- 
-    peer = null;
-    dataChannel = null;
-    startSocket = null
-    master = false;
-    dataOk = false;
-    otherData = null;
- 
+    }; 
+    myPublic64 = "";
+    serverPublic64 = "";
+    serverPublicKey = null;
+    otherPublicKey = null;  
 
     connectClientA() {  
-        // Crear una conexión RTC
-        this.peer = new RTCPeerConnection(this.configuration);
+        (async () => {   
 
-        // Necesitamos manejar el evento 'icecandidate' para obtener la IP pública
-        this.peer.onicecandidate = (event) => {
-            const res = this.saveDataFromIceCandidate(event);
-            if (res) this.socketRegister();
-        };
+            // Generar par de claves
+            this.myKey = await UtilsAsymetric.generateKeyPair();
+            console.log(this.myKey);
+            this.myPublic64 = await UtilsAsymetric.exportPublicKey(this.myKey.publicKey);
 
-        // Crear una oferta (esto iniciará el proceso de descubrimiento de ICE)
-        this.master = true;
-        this.dataChannel = this.peer.createDataChannel("secureChannel");  // Crear un canal de datos vacío
+            this.initSocket( () => {
+                this.socket.send(JSON.stringify({type: EToServer.REGISTER, payload: this.myPublic64}));
+                steps.showLoading("Signaling... Ok");
+            });
 
-        this.peer.oniceconnectionstatechange = this.onIceConnectionStateChange.bind(this);
-        this.dataChannel.onopen = this.onPeerOpen.bind(this); 
-        this.dataChannel.onerror = this.onPeerError.bind(this);
-        this.dataChannel.onclose = this.onPeerClose.bind(this);
-        this.dataChannel.onmessage = this.onPeerMessage.bind(this);
-
-        this.peer.createOffer()
-        .then((offer) => {
-            console.log("createOffer", offer);
-            this.myData.sdp = JSON.stringify(offer);
-            steps.showLoading("Establishing connection...");
-            return this.peer.setLocalDescription(offer);
-        })
-        .catch(console.error);
+        })().catch(console.error);  
     } 
 
     connectClientB() {   
         (async () => {   
-            await this.readOtherData(steps.stepJoin_Pass.value, steps.stepJoin_Data.value);
-            this.myData.linkToken = this.otherData.linkToken;
+            // Generar par de claves
+            this.myKey = await UtilsAsymetric.generateKeyPair();
+            console.log(this.myKey);
+            this.myPublic64 = await UtilsAsymetric.exportPublicKey(this.myKey.publicKey);
+
+            //read first client data
+            const firstData         = await this.readSymetricData(steps.stepJoin_Pass.value, steps.stepJoin_Data.value); 
+            this.sessionToken       = firstData.sessionToken;
+            this.otherPublicKey     = await UtilsAsymetric.importPublicKey(otherData.clientPublic64);
+            this.serverPublic64     = otherData.serverPublic64;
+            this.serverPublicKey    = await UtilsAsymetric.importPublicKey(this.serverPublic64);
  
-            // Crear una conexión RTC
-            this.peer = new RTCPeerConnection(this.configuration);
-
-            // Necesitamos manejar el evento 'icecandidate' para obtener la IP pública
-            this.peer.onicecandidate = (event) => {
-                const res = this.saveDataFromIceCandidate(event); 
-                if (res) this.socketLink();
-            };
-
-            // Escuchar la creación del canal de datos
-            this.peer.ondatachannel = (event) => {
-                console.log("ondatachannel", event);
-
-                this.dataChannel = event.channel;  
-                this.peer.oniceconnectionstatechange    = this.onIceConnectionStateChange.bind(this); 
-                this.dataChannel.onmessage              = this.onPeerMessage.bind(this);
-                this.dataChannel.onerror                = this.onPeerError.bind(this);
-                this.dataChannel.onclose                = this.onPeerClose.bind(this);
-                this.dataChannel.onopen                 = this.onPeerOpen.bind(this); 
-            };
-
-            // Agregar la oferta de Peer A 
-            this.peer.setRemoteDescription(new RTCSessionDescription(JSON.parse(this.otherData.sdp)));
-            this.otherData.ice.forEach(ice => {
-                this.peer.addIceCandidate(JSON.parse(ice));
+            //connect
+            this.initSocket( () => {
+                (async () => {   
+                    const myEncripted = await this.encryptSymetricData({key: this.myPublic64}, steps.stepJoin_Pass.value);
+                    steps.stepJoin_Pass.value = "";
+                    this.sendSocketData(EToServer.LINK, myEncripted); 
+                    this.success = true;
+                })().catch(console.error);  
             });
-             
-            // Crear respuesta SDP
-            this.peer.createAnswer()
-            .then((answer) => { 
-                this.myData.sdp = JSON.stringify(answer);
-                steps.showLoading("Establishing connection...");
-                return this.peer.setLocalDescription(answer); 
-            })
-            .catch(console.error);  
         })().catch(console.error);  
     } 
 
-    async encryptMyData(pass) { 
-        // Generar par de claves
-        this.myKey = await UtilsAsymetric.generateKeyPair();
-        console.log(this.myKey);
-        this.myData.public64 = await UtilsAsymetric.exportPublicKey(this.myKey.publicKey);
-
-        console.log('send data:', this.myData);
-        const raw = JSON.stringify(this.myData);
+    async encryptSymetricData(sendData, pass) {   
+        console.log('send data:', sendData);
+        const raw = JSON.stringify(sendData);
 
         // Derivar clave
         const salt = (new Date()).toLocaleString();
@@ -328,10 +298,15 @@ class Connection
         return res;
     }
 
-    async readOtherData(pass, dataString) {
-         
-        //parse other data  
-        const parts         = dataString.split(":");
+    async readSymetricData(pass, dataString) { 
+		const parts = dataString.split(":");
+
+		if (parts.length < 3) {
+			steps.showError("Invalid connection data");
+			return;
+		}
+
+        //parse other data   
         const iv            = new Uint8Array(atob(parts[0]).split(","));
         const salt          = atob(parts[1]);
         const ciphertext    = Utils.hexToBytes(parts[2]);
@@ -341,20 +316,35 @@ class Connection
 
         // Descifrar texto
         const textoDescifrado = await Utils.decryptText(key, ciphertext, iv); 
-        this.otherData = JSON.parse(textoDescifrado);
+        const otherData = JSON.parse(textoDescifrado);
 
-        console.log('Texto descifrado:', this.otherData);  
+        console.log('Texto descifrado:', otherData);  
+        return otherData;
     }
 
-    onRegisterOk(token)
-    {
-        (async () => {   
-            this.myData.linkToken = token;
+    sendChatMessage(text) { 
+        this.sendSocketData(EToServer.MESSAGE, text);
+    }
  
-            const res = await this.encryptMyData(steps.stepNew_Pass.value);
+    onRegisterOk(registerText)
+    {
+        const registerData = JSON.parse(registerText);
+        (async () => {   
+            this.sessionToken    = registerData.token;
+            this.serverPublic64  = registerData.key;
+            this.serverPublicKey = await UtilsAsymetric.importPublicKey(registerData.key);
+ 
+            const sendData = {
+                sessionToken: this.sessionToken,
+                clientPublic64: this.myPublic64,
+                serverPublic64: this.serverPublic64,
+            }; 
+            const res = await this.encryptSymetricData(sendData, steps.stepNew_Pass.value);
             console.log('Texto cifrado:', res);  
 
-            steps.showLoading("Waiting for client B..."); 
+            steps.showLoading("Waiting for client B... Press the code below to copy to clipboard and send it to your other peer"); 
+			steps.showLoadingCopy(res);
+
         })().catch(console.error); 
     }
 
@@ -362,94 +352,17 @@ class Connection
     {
         (async () => {   
             steps.showLoading("Waiting for connection..."); 
-            await this.readOtherData(steps.stepNew_Pass.value, data);
+            const otherData = await this.readSymetricData(steps.stepNew_Pass.value, data);
+            this.otherPublicKey = await UtilsAsymetric.importPublicKey(otherData.key);
+            this.success = true;
             steps.stepNew_Pass.value = "";
-
-            this.peer.setRemoteDescription(new RTCSessionDescription(JSON.parse(this.otherData.sdp)));
-            this.otherData.ice.forEach(ice => {
-                this.peer.addIceCandidate(JSON.parse(ice));
-            }); 
+            steps.showChat();
         })().catch(console.error); 
     }
-
-    sendPeerMessage(text) { 
-        (async () => {   
-            // Cifrar con clave pública 
-            const publicCryptoA = await UtilsAsymetric.importPublicKey(this.otherData.public64);
-            const encryptedData = await UtilsAsymetric.encryptWithPublicKey(publicCryptoA, text);
-            const hex = Array.from(encryptedData).map(b => b.toString(16).padStart(2, '0')).join('');
-            console.log("Texto Cifrado (Hex):", hex);
-            this.dataChannel.send(hex);
-        })().catch(console.error);     
-    }
-
  
-    //WEB RTC
-    onPeerOpen(event) {
-        console.log("Canal abierto, listo para enviar mensajes.");
-        console.log(event);
-        steps.showChat();
-        this.startSocket.close();
-        this.stepChat_Status.innerHTML = "Connected"; 
+    onChatMessage(message) { 
+        steps.addMessage(false, message);
     } 
-
-    onPeerClose() {
-        console.log("Canal cerrado");
-        this.stepChat_Status.innerHTML = "Disconnected"; 
-    } 
-
-    onPeerError(error) {
-        console.log("error", error);
-        this.stepChat_Status.innerHTML = "Error"; 
-    } 
-
-    onIceConnectionStateChange(event) {
-        console.log("Estado ICE:", this.peer.iceConnectionState, event);
-        if (this.peer.iceConnectionState === "connected") {
-            console.log("Conexión establecida!");
-        }
-    } 
-
-    onPeerMessage(event) {
-        console.log("Mensaje recibido:", event);
-        (async () => {   
-            // Descifrar con clave privada 
-            const decryptedData = await UtilsAsymetric.decryptWithPrivateKey(this.myKey.privateKey, Utils.hexToBytes(event.data));
-            console.log("Texto Descifrado:", decryptedData);
-
-            steps.addMessage(false, decryptedData)
-        })().catch(console.error);  
-    } 
-
-    saveDataFromIceCandidate(iceEvent) {
-        console.log("onicecandidate", iceEvent);
-        if (iceEvent.candidate != null) {   
-            this.myData.ice.push(JSON.stringify(iceEvent.candidate));
-            if (!this.dataOk) {  
-                // Extraer la IP pública y el puerto
-                const candidate = iceEvent.candidate.candidate;
-                const match = candidate.match(/candidate:(\d+) (\d+) (\w+) (\d+) (\d+\.\d+\.\d+\.\d+) (\d+) typ (\w+)(?: raddr (\d+\.\d+\.\d+\.\d+))?(?: rport (\d+))?/); 
-				 
-                if (match) { 
-					const ip = match[5];
-					const port = match[6];
-
-					if (!Utils.isLocalIp(ip)) {
-						this.myData.ip      = ip;
-						this.myData.port    = port; 
-						this.dataOk = true; 
-	
-						console.log("candidate OK!");  
-					} 
-                }
-            }  
-        }
-        else {
-            return true;
-        }
-
-        return false;
-    }
 
      
     //SOCKET
@@ -457,49 +370,72 @@ class Connection
 
         steps.showLoading("Signaling...");
 
-        this.startSocket = new WebSocket(this.socketUrl);
+        this.socket = new WebSocket(this.socketUrl);
 
-        this.startSocket.onopen = () => {
+        this.socket.onopen = () => {
           console.log("Connection established with the server"); 
           if (callback != null) callback();  
         };
         
-        this.startSocket.onmessage = this.onSocketMessage.bind(this);
-        this.startSocket.onerror = this.onSocketError.bind(this); 
-        this.startSocket.onclose = this.onSocketClose.bind(this);
+        this.socket.onmessage = this.onSocketMessage.bind(this);
+        this.socket.onerror = this.onSocketError.bind(this); 
+        this.socket.onclose = this.onSocketClose.bind(this);
     }
 
-    socketRegister() {
-        this.initSocket( () => {
-            this.startSocket.send(JSON.stringify({type: EToServer.REGISTER}));
-        });
+    sendSocketData(type, textData) { 
+        (async () => {   
+            // Cifrar con clave pública otro
+            const encryptedData = await UtilsAsymetric.encryptWithPublicKey(this.otherPublicKey, textData);
+            const hex = Array.from(encryptedData).map(b => b.toString(16).padStart(2, '0')).join(''); 
+
+            // Cifrar con clave pública server
+            const send = {
+                token: this.sessionToken,
+                data: hex,
+            };
+            const encryptedSend = await UtilsAsymetric.encryptWithPublicKey(this.serverPublicKey, send);
+            const hexSend = Array.from(encryptedSend).map(b => b.toString(16).padStart(2, '0')).join(''); 
+
+            this.socket.send({type: type, payload: hexSend});
+        })().catch(console.error);     
     }
-
-    socketLink() {
-        this.initSocket( () => {
-            (async () => {   
-                const linkToken = this.otherData.linkToken;
-                const myEncripted = await this.encryptMyData(steps.stepJoin_Pass.value);
-                steps.stepJoin_Pass.value = "";
-                this.startSocket.send(JSON.stringify({type: EToServer.LINK, payload: {token: linkToken, data: myEncripted} })); 
-            })().catch(console.error);  
-        });
-    }
-
-    onSocketMessage(event) {
-        const data = JSON.parse(event.data);
-
-        if (data.status === EFromServer.REGISTER_OK) {
-            console.log("Registration successful. Token:", data.token);
-            this.onRegisterOk(data.token);
-        } else if (data.status === EFromServer.LINK_DATA) {
-            console.log("Link successful. data:", data.data);
-            this.onLinkData(data.data);
-        } else if (data.status === EFromServer.ERROR) {
-            console.log("Error. message:", data.message);
-        } else {
-            console.log("Message unknown received:", data);
-        }
+   
+    onSocketMessage(event) { 
+        (async () => {  
+            console.log("Received event:", event);
+            // Descifrar con clave privada 
+            const decryptedData = await UtilsAsymetric.decryptWithPrivateKey(this.myKey.privateKey, Utils.hexToBytes(event.data)); 
+            const data = JSON.parse(decryptedData);
+            console.log("Texto Descifrado:", data);
+  
+            if (data.status === EFromServer.REGISTER_OK) {
+                console.log("Registration successful. Token:", data.result);
+                this.onRegisterOk(data.result);
+            } 
+            else 
+            {
+                //check signature
+                const check = await UtilsAsymetric.verifyWithPublicKey(this.serverPublic64, JSON.stringify(data.result), data.sign);
+                if (!check) {
+                    steps.showError("Invalid server signature received");
+                }
+                else {
+                    if (data.status === EFromServer.LINK_DATA) {
+                        console.log("Link successful. data:", data.result);
+                        this.onLinkData(data.result);
+                    } else if (data.status === EFromServer.MESSAGE) {
+                        console.log("New message:", data.result);
+                        this.onChatMessage(data.result);
+                    } else if (data.status === EFromServer.ERROR) {
+                        console.log("Error. message:", data.result);
+                        steps.showError(data.result);
+                    } else {
+                        console.log("Message unknown received:", data);
+                        steps.showError("Message unknown received");
+                    } 
+                } 
+            } 
+        })().catch(console.error);    
     }
 
     onSocketError(err) {
@@ -581,8 +517,7 @@ class Utils
         if (this.hasClass(element, clas)) 	this.removeClass(element, clas);
         else 							this.addClass(element, clas);
     } 
-
-
+ 
     // Función para convertir Uint8Array a una cadena hexadecimal
     static bytesToHex(bytes) {
         return Array.from(bytes)
@@ -598,8 +533,7 @@ class Utils
         }
         return bytes;
     }
-
-
+ 
     // Derivar una clave con PBKDF2
     static async deriveKey(password, salt) {
         const encoder = new TextEncoder();
@@ -699,6 +633,13 @@ class Utils
 		return false;
 	}
  
+	static copyToClipboard(copyText) { 
+		navigator.clipboard.writeText(copyText).then(() => {
+			console.log("Text copied to clipboard!");
+		}).catch(err => {
+			console.log("Failed to copy text: " + err);
+		});
+	}
 }
  
 
@@ -776,5 +717,42 @@ class UtilsAsymetric
         );
         const decoder = new TextDecoder();
         return decoder.decode(plaintext);
+    }
+
+    // Firmar datos con clave privada
+    static async signWithPrivateKey(privateKey, plaintext) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(plaintext);
+
+        // Firmar el hash de los datos
+        const signature = await crypto.subtle.sign(
+            {
+                name: "RSA-PSS", // Algoritmo de firma digital recomendado
+                saltLength: 32  // Longitud del salt
+            },
+            privateKey,
+            data
+        );
+
+        return new Uint8Array(signature); // Firma como ArrayBuffer
+    }
+
+    // Verificar la firma con clave pública
+    static async verifyWithPublicKey(publicKey, plaintext, signature) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(plaintext);
+
+        // Verificar la firma digital
+        const isValid = await crypto.subtle.verify(
+            {
+                name: "RSA-PSS",
+                saltLength: 32
+            },
+            publicKey,
+            signature,
+            data
+        );
+
+        return isValid; // Devuelve true si la firma es válida, false en caso contrario
     }
 }
