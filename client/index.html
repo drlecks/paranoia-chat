@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paranoia Chat</title>
+    <title>Paranoia Chat</title> 
+	<script>var module = {};</script>
+	<script src="../common/common.js" defer>var module = {};</script>
     <script src="paranoia.js" defer></script>
 	<link rel="stylesheet" href="style.css">
 </head>
@@ -11,10 +13,10 @@
      
 	<header>
 		<div class="top-bar">
-			<div>Paranoia Chat</div>
+			<div>PARANOIA CHAT</div>
 			<div class="icons">
-				<i class="icon-settings">⚙️</i>
-				<i class="icon-logout">🔥</i>
+				<i id="chatSettings" class="icon-settings hide">⚙️</i>
+				<i id="chatBurn" class="icon-logout">🔥</i>
 			</div>
 		</div>
 		<div id="chatStatus" class="status-bar">Conectado</div>
@@ -68,10 +70,12 @@
 
 			<p id="loadingStatus">Cargando...</p>
 
-			<div id="loadingCopyContainer"  class="loading-copy-container hide">
+			<div id="loadingCopyLabel1" class="loading-copy-label">Click on the code to copy</div>
+			<div id="loadingCopyContainer"  class="loading-copy-container hide"> 
 				<div id="loadingCopyText" class="loading-copy-text">asdfasdfasdfasdfsdfsadfdsfasdfasdfasdfasdfasdfasdfasdfsdfsdfsdfasdfasdfasdfasdfasdfasdfasdfasdf</div>
 				<div class="loading-copy-icon">&#128203;</div>
 			</div>
+			<div id="loadingCopyLabel2" class="loading-copy-label loading-copy-label-done hide">✅ Text copied to clipboard!</div>
 		</center>
     </div>
 

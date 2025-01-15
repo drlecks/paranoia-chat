@@ -1,10 +1,13 @@
-
-var steps = null;
-var connection = null;
+var steps       = null;
+var connection  = null;
+var demo        = null;
 
 document.body.onload = function() {
     connection = new Connection();
-    steps = new StepManager();  
+    steps = new StepManager();   
+
+    if (demo != null)   demo.demoStart();
+    else                connection.initialServerPing();
 };
 
 
@@ -57,6 +60,8 @@ class StepManager
         this.stepLoading_Status = document.getElementById('loadingStatus');
 		this.stepLoading_CopyContainer = document.getElementById('loadingCopyContainer');
 		this.stepLoading_CopyText = document.getElementById('loadingCopyText');
+        this.stepLoading_CopyLabel1 = document.getElementById('loadingCopyLabel1');
+        this.stepLoading_CopyLabel2 = document.getElementById('loadingCopyLabel2');
 
         this.stepError_Restart = document.getElementById('restart');
         this.stepError_Text = document.getElementById('errorText');
@@ -65,6 +70,7 @@ class StepManager
         this.stepChat_Content  = document.getElementById('chatContent');
         this.stepChat_Text  = document.getElementById('chatText'); 
         this.stepChat_Send  = document.getElementById('chatSend'); 
+        this.stepChat_Burn  = document.getElementById('chatBurn'); 
 
         //listeners
         this.stepStart_New.addEventListener('click', this.onButton_StepStart_New.bind(this) , false);
@@ -79,14 +85,24 @@ class StepManager
 		this.stepLoading_CopyContainer.addEventListener('click', this.onButton_StepLoading_CopyContainer.bind(this) , false);
 		
 
+        
+        this.stepChat_Burn.addEventListener('click', this.onButton_StepChat_Burn.bind(this) , false);
         this.stepChat_Send.addEventListener('click', this.onButton_StepChat_Send.bind(this) , false);
 		 
         this.stepNew_Api.value = connection.socketUrl;
         this.stepJoin_Api.value = connection.socketUrl;
         this.stepChat_Status.innerHTML = "Hello!"; 
         this.stepChat_Content.innerHTML = ""; 
-    }  
 
+        this.stepChat_Text.addEventListener('input', () => {
+            // Restablece la altura para recalcular
+            this.stepChat_Text.style.height = 'auto';
+
+            // Ajusta la altura automáticamente según el contenido
+            this.stepChat_Text.style.height = `${Math.min(this.stepChat_Text.scrollHeight, parseInt(getComputedStyle(this.stepChat_Text).lineHeight) * 4)}px`;
+        });  
+    }  
+ 
     showStepStart() {
         Utils.removeClass(this.containerStepStart, 'hide');
 
@@ -105,6 +121,8 @@ class StepManager
         Utils.addClass(this.containerLoading, 'hide'); 
         Utils.addClass(this.containerError, 'hide');
         Utils.addClass(this.containerChat, 'hide'); 
+
+        this.stepNew_Pass.focus();
     }
 
     showStepConnect() {
@@ -115,6 +133,8 @@ class StepManager
         Utils.addClass(this.containerLoading, 'hide'); 
         Utils.addClass(this.containerError, 'hide');
         Utils.addClass(this.containerChat, 'hide'); 
+
+        this.stepJoin_Data.focus();
     }
 
     showLoading(status = '') {
@@ -131,12 +151,17 @@ class StepManager
  
 		Utils.removeClass(this.stepLoading_Spinner, 'hide');
 		Utils.addClass(this.stepLoading_CopyContainer, 'hide');
+        Utils.addClass(this.stepLoading_CopyLabel1, 'hide');
+        Utils.addClass(this.stepLoading_CopyLabel2, 'hide');
     }
 
 	showLoadingCopy(copyText) {
-		this.stepLoading_CopyText.innerText = copyText;
+		this.stepLoading_CopyText.setAttribute('code', copyText);
+        this.stepLoading_CopyText.innerText = copyText.substring(0, 12)+"...";
 
 		Utils.addClass(this.stepLoading_Spinner, 'hide');
+        Utils.addClass(this.stepLoading_CopyLabel2, 'hide');
+        Utils.removeClass(this.stepLoading_CopyLabel1, 'hide');
 		Utils.removeClass(this.stepLoading_CopyContainer, 'hide');
 	}
 
@@ -163,6 +188,7 @@ class StepManager
         Utils.addClass(this.containerError, 'hide'); 
 
         this.stepChat_Status.innerHTML = "Connected"; 
+        this.stepChat_Text.focus();
     }
 
     onButton_StepStart_New() {
@@ -191,9 +217,14 @@ class StepManager
     }
 
 	onButton_StepLoading_CopyContainer(){
-		
-		Utils.copyToClipboard(this.stepLoading_CopyText.innerText);
+		const code = this.stepLoading_CopyText.getAttribute('code');
+		Utils.copyToClipboard(code);
+        Utils.removeClass(this.stepLoading_CopyLabel2, 'hide');
 	}
+
+    onButton_StepChat_Burn() {
+        connection.burn();
+    }
 
     onButton_StepChat_Send() {
         const text = this.stepChat_Text.value;
@@ -211,26 +242,11 @@ class StepManager
         this.stepChat_Content.scrollTop = this.stepChat_Content.scrollHeight;
     }
 }
-
-class EToServer {
-    static REGISTER = "r";
-    static LINK     = "l"; 
-    static MESSAGE  = "m";
-} 
-
-class EFromServer {
-    static ERROR        = "er";
-    static REGISTER_OK  = "ro";
-    static LINK_DATA    = "ld";
-    static CLOSE        = "cl"; 
-    static MESSAGE      = "me"; 
-} 
-
-
+ 
 class Connection
 {  
-    //socketUrl       = "ws://localhost:8080";//"wss://paranoia-chat.onrender.com";
-    socketUrl       = "wss://paranoia-chat.onrender.com";
+    socketUrl       = "ws://localhost:8080";
+    //socketUrl       = "wss://paranoia-chat.onrender.com";
     socket          = null;
     sessionToken    = "";
     success         = false;
@@ -247,19 +263,26 @@ class Connection
     serverSign64        = "";
     serverSignKey       = null;
 
+
+    initialServerPing()
+    {
+        steps.showLoading("Connecting to server, please wait...");
+        this.initSocket.bind(this)( () => { 
+            steps.showStepStart();
+        });
+    }
+
     connectClientA() {  
-        (async () => {   
+        (async () => {    
+            const passCheck = Utils.checkPassword(steps.stepNew_Pass.value);
+            if (!passCheck) { steps.showError("Weak password"); return; }
 
             // Generar par de claves
             this.myKey = await UtilsAsymetric.generateKeyPair();
-            console.log(this.myKey);
             this.myPublic64 = await UtilsAsymetric.exportPublicKey(this.myKey.publicKey);
-
-            this.initSocket.bind(this)( () => {
-                this.socket.send(JSON.stringify({type: EToServer.REGISTER, key: this.myPublic64}));
-                console.log(this.myPublic64);
-                steps.showLoading("Signaling... Ok");
-            });
+ 
+            this.socket.send(JSON.stringify({type: EToServer.REGISTER, key: this.myPublic64}));
+            steps.showLoading("Signaling... Ok"); 
 
         })().catch(console.error);  
     } 
@@ -267,13 +290,17 @@ class Connection
     connectClientB() {   
         (async () => {   
             // Generar par de claves
-            this.myKey = await UtilsAsymetric.generateKeyPair();
-            console.log(this.myKey);
+            this.myKey = await UtilsAsymetric.generateKeyPair(); 
             this.myPublic64 = await UtilsAsymetric.exportPublicKey(this.myKey.publicKey);
 
             //read first client data
             const firstData         = await Utils.readSymetricData(steps.stepJoin_Pass.value, steps.stepJoin_Data.value); 
-            console.log(firstData);
+            
+            if (firstData == null)                  { steps.showError("Read data error 1"); return; }
+            if (firstData.sessionToken == null)     { steps.showError("Read data error 2"); return; }
+            if (firstData.serverEncrypt64 == null)  { steps.showError("Read data error 3"); return; }
+            if (firstData.serverSign64 == null)     { steps.showError("Read data error 4"); return; }
+
             this.sessionToken       = firstData.sessionToken;
             this.otherPublicKey     = await UtilsAsymetric.importPublicKey(firstData.clientPublic64);
             this.serverEncrypt64    = firstData.serverEncrypt64;
@@ -281,16 +308,13 @@ class Connection
             this.serverSign64       = firstData.serverSign64;
             this.serverSignKey      = await UtilsAsymetric.importPublicSignKey(this.serverSign64);
  
-            //connect
-            this.initSocket.bind(this)( () => {
-                (async () => {    
-                    const encrypted = await Utils.encryptSymetricData(this.myPublic64, steps.stepJoin_Pass.value);
-                    steps.stepJoin_Pass.value = "";
-                    this.sendSocketData(EToServer.LINK, encrypted); 
-                    this.success = true;
-                    steps.showChat();
-                })().catch(console.error);  
-            });
+            //connect  
+            const encrypted = await Utils.encryptSymetricData(this.myPublic64, steps.stepJoin_Pass.value);
+            steps.stepJoin_Pass.value = "";
+            this.sendSocketData(EToServer.LINK, encrypted); 
+            this.success = true;
+            steps.showChat();  
+
         })().catch(console.error);  
     } 
  
@@ -299,7 +323,7 @@ class Connection
     }
  
     async onRegisterOk(registerData)
-    { 
+    {  
         this.sessionToken       = registerData.token;
         this.serverEncrypt64    = registerData.encryptKey;
         this.serverEncryptKey    = await UtilsAsymetric.importPublicKey(this.serverEncrypt64);
@@ -312,18 +336,16 @@ class Connection
             serverEncrypt64:    this.serverEncrypt64,
             serverSign64:       this.serverSign64,
         }; 
-        const res = await Utils.encryptSymetricData(sendData, steps.stepNew_Pass.value);
-        console.log('Texto cifrado:', res);  
+        const res = await Utils.encryptSymetricData(sendData, steps.stepNew_Pass.value); 
 
-        steps.showLoading("Waiting for client B... Press the code below to copy to clipboard and send it to your other peer"); 
+        steps.showLoading("Waiting for client B... <br>Press the code below to copy to clipboard and send it to your other peer"); 
         steps.showLoadingCopy(res); 
     }
 
     async onLinkData(data)
     { 
         steps.showLoading("Waiting for connection..."); 
-        const otherData = await Utils.readSymetricData(steps.stepNew_Pass.value, data);
-        console.log(otherData);
+        const otherData = await Utils.readSymetricData(steps.stepNew_Pass.value, data); 
         this.otherPublicKey = await UtilsAsymetric.importPublicKey(otherData);
         this.success = true;
         steps.stepNew_Pass.value = "";
@@ -333,22 +355,42 @@ class Connection
     async onChatMessage(message) { 
         steps.addMessage(false, message);
     } 
+ 
+    burn()
+    {
+        const eraseString  = "XXXXXXXXXXX";
+
+        steps.stepNew_Pass.value        = "";
+        steps.stepJoin_Pass.value       = "";
+        steps.stepJoin_Data.value       = "";
+ 
+        this.myKey.privateKey   = eraseString;
+        this.myKey.publicKey    = eraseString;
+        this.myKey.myPublic64   = eraseString; 
+        this.sessionToken       = eraseString;
+        this.success            = eraseString; 
+        this.otherPublicKey     = eraseString;   
+        this.serverEncrypt64    = eraseString;
+        this.serverEncryptKey   = eraseString;
+        this.serverSign64       = eraseString;
+        this.serverSignKey      = eraseString;
+ 
+        this.socket.close();
+        steps.showError("Connection burned");
+    }
 
      
     //SOCKET
-    initSocket(callback = null) { 
-        steps.showLoading("Signaling...");
-
-        this.socket = new WebSocket(this.socketUrl);
-
+    initSocket(callback = null) {   
+        this.socket = new WebSocket(this.socketUrl); 
         this.socket.onopen = () => {
           console.log("Connection established with the server"); 
           if (callback != null) callback();  
         };
         
-        this.socket.onmessage = this.onSocketMessage.bind(this);
-        this.socket.onerror = this.onSocketError.bind(this); 
-        this.socket.onclose = this.onSocketClose.bind(this);
+        this.socket.onmessage   = this.onSocketMessage.bind(this);
+        this.socket.onerror     = this.onSocketError.bind(this); 
+        this.socket.onclose     = this.onSocketClose.bind(this);
     } 
 
     sendSocketData(type, textData) { 
@@ -364,23 +406,20 @@ class Connection
     }
    
     onSocketMessage(event) { 
-        (async () => {  
-            console.log("Received event:", event);
+        (async () => {   
             const data = JSON.parse(event.data);
 
             if (data.status === EFromServer.ERROR) {
-                const errorText = atob(data.result);
-                console.log("Error. message:", errorText);
+                const errorText = atob(data.result); 
                 steps.showError(errorText);
             }
             else
             { 
                 const result    = JSON.parse(data.result);  
-                const received  = await UtilsAsymetric.hybridDecrypt(this.myKey.privateKey, result);    
-                console.log(received);
+                const received  = await UtilsAsymetric.hybridDecrypt(this.myKey.privateKey, result);     
 
                 if (data.status === EFromServer.REGISTER_OK) {
-                    console.log("Registration successful. Token:", received.token);
+                    console.log("Registration successful with token:");
                     await this.onRegisterOk(received);
                 } 
                 else 
@@ -392,10 +431,9 @@ class Connection
                     }
                     else {
                         if (data.status === EFromServer.LINK_DATA) {
-                            console.log("Link successful. data:",received);
+                            console.log("Link successful");
                             await this.onLinkData(received);
                         } else if (data.status === EFromServer.MESSAGE) {
-                            console.log("New message:", received);
                             await this.onChatMessage(received);
                         } else {
                             console.log("Message unknown received:", data);
@@ -421,411 +459,3 @@ class Connection
     }
 }
  
-
-class Utils
-{ 
-    /**
-     * mira si la  clases que existan en el elemento
-     * @param {HTMLElement} element 
-     * @param {String} clas
-     */
-    static hasClass(element, clas)
-    {
-        if (element == undefined || element == null) return false;
-        return element.classList.contains(clas);
-    }
-
-
-    /**
-     * Añade una o más clases que no existan ya en el elemento
-     * @param {HTMLElement} element 
-     * @param {String | Array<String>} classes 
-     */
-    static addClass(element, classes)
-    {
-        if (element == undefined || element == null) return;
-
-        if (typeof classes === "string")
-            classes = classes.split(" ");
-
-        classes.forEach( (value) => { 
-            if (value != "")
-            {
-                if (!element.classList.contains(value))
-                element.classList.add(value);
-            }
-        });
-    }
-
-    /**
-     * Elimina una o más clases que existan en el elemento
-     * @param {HTMLElement} element 
-     * @param {String | Array<String>} classes 
-     */
-    static removeClass(element, classes)
-    {
-        if (element == undefined || element == null) return;
-
-        if (typeof classes === "string")
-            classes = classes.split(" ");
-
-        classes.forEach( (value) => {
-            if (value != "")
-            {
-                if (element.classList.contains(value))
-                element.classList.remove(value);
-            }
-        });
-    }
-
-
-    /**
-     * mira si la  clases que existan en el elemento
-     * @param {HTMLElement} element 
-     * @param {String} clas
-     */
-    static toggleClass(element, clas)
-    {
-        if (element == undefined || element == null) return;
-
-        if (this.hasClass(element, clas)) 	this.removeClass(element, clas);
-        else 							this.addClass(element, clas);
-    } 
- 
-    // Función para convertir Uint8Array a una cadena hexadecimal
-    static bytesToHex(bytes) {
-        return Array.from(bytes)
-            .map(byte => byte.toString(16).padStart(2, '0'))
-            .join('');
-    }
-
-    // Función para convertir una cadena hexadecimal a Uint8Array
-    static hexToBytes(hex) {
-        const bytes = new Uint8Array(hex.length / 2);
-        for (let i = 0; i < bytes.length; i++) {
-            bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
-        }
-        return bytes;
-    }
- 
-    // Derivar una clave con PBKDF2
-    static async deriveKey(password, salt) {
-        const encoder = new TextEncoder();
-        const passwordKey = await crypto.subtle.importKey(
-            'raw',
-            encoder.encode(password),
-            'PBKDF2',
-            false,
-            ['deriveKey']
-        );
-
-        const key = await crypto.subtle.deriveKey(
-            {
-                name: 'PBKDF2',
-                salt: encoder.encode(salt),
-                iterations: 100000, // Número de iteraciones (ajustar según necesidad)
-                hash: 'SHA-256'
-            },
-            passwordKey,
-            {
-                name: 'AES-GCM',
-                length: 256
-            },
-            false,
-            ['encrypt', 'decrypt']
-        );
-
-        return key;
-    }
-
-    // Cifrar texto
-    static async encryptText(key, plaintext) {
-        const encoder = new TextEncoder();
-        const iv = crypto.getRandomValues(new Uint8Array(12)); // Vector de inicialización (IV)
-
-        const ciphertext = await crypto.subtle.encrypt(
-            {
-                name: 'AES-GCM',
-                iv: iv
-            },
-            key,
-            encoder.encode(plaintext)
-        );
-
-        return {
-            ciphertext: new Uint8Array(ciphertext),
-            iv: iv
-        };
-    }
-
-    // Descifrar texto
-    static async decryptText(key, ciphertext, iv) {
-        const decoder = new TextDecoder();
-
-        const plaintext = await crypto.subtle.decrypt(
-            {
-                name: 'AES-GCM',
-                iv: iv
-            },
-            key,
-            ciphertext
-        );
-
-        return decoder.decode(plaintext);
-    }
-
-    static async encryptSymetricData(sendData, pass) {    
-        const raw = JSON.stringify(sendData);
-
-        // Derivar clave
-        const salt = (new Date()).toLocaleString();
-        const key = await Utils.deriveKey(pass, salt); 
-
-        // Cifrar texto
-        const { ciphertext, iv } = await Utils.encryptText(key, raw);
-        const res = btoa(iv) + ":" + btoa(salt) + ":" + Utils.bytesToHex(ciphertext);
-
-        return btoa(res);
-    }
-
-    static async readSymetricData(pass, dataString) { 
-		const parts = atob(dataString).split(":");
-
-		if (parts.length < 3) { 
-			return null;
-		}
-
-        //parse other data   
-        const iv            = new Uint8Array(atob(parts[0]).split(","));
-        const salt          = atob(parts[1]);
-        const ciphertext    = Utils.hexToBytes(parts[2]);
-
-        // Derivar clave 
-        const key = await Utils.deriveKey(pass, salt);
-
-        // Descifrar texto
-        const textoDescifrado = await Utils.decryptText(key, ciphertext, iv);  
-        const otherData = JSON.parse(textoDescifrado);  
-        return otherData != null ? otherData : textoDescifrado;
-    }
-
-    static generateRandomHex(bytes = 64) {
-        const randomValues = new Uint8Array(bytes);
-        window.crypto.getRandomValues(randomValues); // Fill array with cryptographically secure random values
-        return Array.from(randomValues)
-            .map(byte => byte.toString(16).padStart(2, '0')) // Convert each byte to hex
-            .join('');
-    }
-
-	static isLocalIp(ip) {
-		const parts = ip.split('.');  // Dividir la IP en partes por los puntos
-		
-		if (parts.length !== 4) {
-			return false; // No es una IP válida si no tiene 4 partes
-		}
-	
-		const [a, b] = [parseInt(parts[0]), parseInt(parts[1])];
-		
-		// Verificar si la IP es del rango 10.x.x.x
-		if (a === 10) {
-			return true;
-		}
-	
-		// Verificar si la IP es del rango 127.x.x.x (loopback)
-		if (a === 127) {
-			return true;
-		}
-	
-		// Verificar si la IP es del rango 192.168.x.x
-		if (a === 192 && b === 168) {
-			return true;
-		}
-	
-		// Verificar si la IP está en el rango 172.16.0.0 - 172.31.255.255
-		if (a === 172 && b >= 16 && b <= 31) {
-			return true;
-		}
-	
-		// Si no cumple con ninguno de estos criterios, no es una IP local
-		return false;
-	}
- 
-	static copyToClipboard(copyText) { 
-		navigator.clipboard.writeText(copyText).then(() => {
-			console.log("Text copied to clipboard!");
-		}).catch(err => {
-			console.log("Failed to copy text: " + err);
-		});
-	}
-}
- 
-
-class UtilsAsymetric {
-    // Generar un par de claves (pública y privada)
-    static async generateKeyPair() {
-        const keyPair = await crypto.subtle.generateKey(
-            {
-                name: 'RSA-OAEP',
-                modulusLength: 2048, // Longitud del módulo
-                publicExponent: new Uint8Array([1, 0, 1]), // Exponente público
-                hash: 'SHA-256', // Algoritmo de hash
-            },
-            true, // Exportable
-            ['encrypt', 'decrypt'] // Usos de las claves
-        );
-        return keyPair;
-    }
-
-    // Exportar la clave pública en formato SPKI
-    static async exportPublicKey(key) {
-        const exportedKey = await crypto.subtle.exportKey('spki', key);
-        return btoa(String.fromCharCode(...new Uint8Array(exportedKey))); // Codificar en Base64
-    }
-
-    static async importPublicKey(base64Key) {
-        // Decodificar la clave base64 a ArrayBuffer
-        const binaryKey = atob(base64Key);
-        const arrayBuffer = new ArrayBuffer(binaryKey.length);
-        const view = new Uint8Array(arrayBuffer);
-
-        for (let i = 0; i < binaryKey.length; i++) {
-            view[i] = binaryKey.charCodeAt(i);
-        }
-
-        // Importar la clave pública usando el formato 'spki'
-        const publicKey = await crypto.subtle.importKey(
-            'spki', // Formato de la clave
-            arrayBuffer, // La clave exportada en ArrayBuffer
-            {
-                name: 'RSA-OAEP', // O el nombre del algoritmo que vayas a usar
-                hash: 'SHA-256', // Hash a utilizar
-            },
-            true, // Si la clave es extractable
-            ['encrypt'] // Operaciones permitidas con la clave
-        );
-
-        return publicKey; // Retorna la CryptoKey importada
-    }
-
-    // Cifrar con clave pública
-    static async encryptWithPublicKey(publicKey, plaintext) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(plaintext);
-        const ciphertext = await crypto.subtle.encrypt(
-            {
-                name: 'RSA-OAEP',
-            },
-            publicKey,
-            data
-        );
-        return new Uint8Array(ciphertext);
-    }
-
-    // Descifrar con clave privada
-    static async decryptWithPrivateKey(privateKey, ciphertext) {
-        const plaintext = await crypto.subtle.decrypt(
-            {
-                name: 'RSA-OAEP',
-            },
-            privateKey,
-            ciphertext
-        );
-        const decoder = new TextDecoder();
-        return decoder.decode(plaintext);
-    }
-
-    static async generateSignKeyPair() {
-        const keyPair = await crypto.subtle.generateKey(
-            {
-                name: "RSA-PSS",
-                modulusLength: 2048,
-                publicExponent: new Uint8Array([1, 0, 1]), // 65537
-                hash: "SHA-256",
-            },
-            true, // Exportable
-            ["sign", "verify"] // Usos de las claves
-        );
-        return keyPair;
-    }
-
-    static async importPublicSignKey(base64Key) {
-        // Decodificar la clave base64 a ArrayBuffer
-        const binaryKey = atob(base64Key);
-        const arrayBuffer = new ArrayBuffer(binaryKey.length);
-        const view = new Uint8Array(arrayBuffer);
-
-        for (let i = 0; i < binaryKey.length; i++) {
-            view[i] = binaryKey.charCodeAt(i);
-        }
-
-        // Importar la clave pública usando el formato 'spki'
-        const publicKey = await crypto.subtle.importKey(
-            'spki', // Formato de la clave
-            arrayBuffer, // La clave exportada en ArrayBuffer
-            {
-                name: 'RSA-PSS', // O el nombre del algoritmo que vayas a usar
-                hash: 'SHA-256', // Hash a utilizar
-            },
-            true, // Si la clave es extractable
-            ['verify'] // Operaciones permitidas con la clave
-        );
-
-        return publicKey; // Retorna la CryptoKey importada
-    }
-    
-
-    // Firmar datos con clave privada
-    static async signWithPrivateKey(privateKey, plaintext) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(plaintext);
-
-        // Firmar el hash de los datos
-        const signature = await crypto.subtle.sign(
-            {
-                name: 'RSA-PSS', // Algoritmo de firma digital recomendado
-                saltLength: 32, // Longitud del salt
-            },
-            privateKey,
-            data
-        );
-
-        return new Uint8Array(signature); // Firma como ArrayBuffer
-    }
-
-    // Verificar la firma con clave pública
-    static async verifyWithPublicKey(publicKey, plaintext, signature) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(plaintext);
-
-        // Verificar la firma digital
-        const isValid = await crypto.subtle.verify(
-            {
-                name: 'RSA-PSS',
-                saltLength: 32,
-            },
-            publicKey,
-            signature,
-            data
-        );
-
-        return isValid; // Devuelve true si la firma es válida, false en caso contrario
-    }
-
-    static async hybridEncrypt(publicKey, textData) { 
-        const secret = typeof crypto !== 'undefined' && typeof crypto.randomBytes === 'function' 
-                     ? crypto.randomBytes(64).toString('hex') 
-                     : Utils.generateRandomHex(64);  
-        const encryptedSecret   = await UtilsAsymetric.encryptWithPublicKey(publicKey, secret);
-        const hexSecret         = Array.from(encryptedSecret).map((b) => b.toString(16).padStart(2, '0')).join(''); 
-        const encryptedData     = await Utils.encryptSymetricData(textData, secret);
-
-        return { secret: hexSecret, packet: encryptedData};
-    }
-
-    static async hybridDecrypt(privateKey, {secret, packet}) { 
-        const secretDec = await UtilsAsymetric.decryptWithPrivateKey(privateKey, Utils.hexToBytes(secret));   
-        const received  = await Utils.readSymetricData(secretDec, packet);    
-
-        return received;
-    }
-}
