@@ -34,11 +34,32 @@ center {
 	height: 100vh;
 	width: -webkit-fill-available; 
 	
-	position:absolute;
-	z-index: 999;
+	position:absolute; 
 	top:0;
 	left:0;
 	background-color: #121212;
+}
+
+.step-height-top {
+	z-index: 500;
+}
+
+.step-height-header {
+	z-index: 400;
+}
+
+.step-height-dialog {
+	z-index: 300;
+}
+
+.step-height-base {
+	z-index: 1;
+}
+
+.separator{
+	width: 100%;
+	border-bottom: 1px solid #292929;
+	margin: 10px auto;
 }
 
 .step h1 {
@@ -85,8 +106,7 @@ center {
 	justify-content: center;
 	height: 100vh;
 	width: -webkit-fill-available; 
-	position:absolute;
-	z-index: 999;
+	position:absolute; 
 	top:0;
 	left:0;
 	background-color: #121212;
@@ -150,8 +170,7 @@ center {
 	justify-content: center;
 	height: 100vh;
 	width: 100%;
-	position:absolute;
-	z-index: 999;
+	position:absolute; 
 	top:0;
 	left:0;
 	background-color: #121212;

@@ -11,64 +11,75 @@
 </head>
 <body>
      
-	<header>
+	<header class="step-height-header">
 		<div class="top-bar">
 			<div>PARANOIA CHAT</div>
 			<div class="icons">
-				<i id="chatSettings" class="icon-settings hide">⚙️</i>
-				<i id="chatBurn" class="icon-logout">🔥</i>
+				<i id="headerSettings" class="icon-settings">⚙️</i>
+				<i id="headerBurn" class="icon-logout">🔥</i>
 			</div>
 		</div>
-		<div id="chatStatus" class="status-bar">Conectado</div>
+		<div id="chatStatus" class="status-bar">Ready to connect...</div>
 	</header>
 
-	<main id="chatContent">
+	<main id="chatContent" class="step-height-base">
 		<div class="message received">Hola, ¿cómo estás?</div>
 		<div class="message sent">¡Hola! Muy bien, ¿y tú?</div>
 		<div class="message received">Todo en orden. 😊</div>
 	</main>
 
-	<footer>
+	<footer class="step-height-base">
 		<div class="input-container">
 			<textarea id="chatText" placeholder="Escribe un mensaje..." rows="1"></textarea>
 			<button id="chatSend">➤</button>
 		</div>
 	</footer>  
 
-    <div id="step1" class="step">
+    <div id="step1" class="step step-height-dialog">
 		<center>
         	<h1>Paranoia Chat</h1>
-        	<button id="newConnection">Nueva conexión</button>
-       		<button id="connectToUser">Conectarse a un usuario</button> 
+        	<button id="newConnection">New Chat</button>
+       		<button id="connectToUser">Join Chat</button> 
 		</center>
     </div>
 
-    <div id="step2New" class="step hide">
+    <div id="step2New" class="step step-height-dialog hide">
 		<center>
-			<h1>Nueva Conexión</h1>
-			<input id="newPassword" type="password" placeholder="Contraseña">
-			<p id="newChangeProvider" class="small-option">Change STUN server</p>
-			<input id="newProvider" class="hide" type="text" placeholder="STUN server udl stun:...">
-			<button id="generateConnection">Generar conexión</button>
+			<h1>New Chat</h1> 
+			<input id="newPassword" type="password" placeholder="Password"> 
+			<p class="small-option">At least 6 characters</p>
+			<button id="generateConnection">Generate chat secret</button>
 		</center>
     </div>
 
-    <div id="step2Connect" class="step hide">
+    <div id="step2Connect" class="step step-height-dialog hide">
 		<center>
-			<h1>Conectarse a un usuario</h1>
-			<textarea id="connectData" rows="4" placeholder="Datos de conexión"></textarea>
-			<input id="connectPassword" type="password" placeholder="Contraseña">
-			<p id="connectChangeProvider" class="small-option">Change STUN server</p>
-			<input id="connectProvider" class="hide" type="text" placeholder="STUN server udl stun:...">
-			<button id="connect">Conectar</button>
+			<h1>Join with chat secret</h1> 
+			<textarea id="connectData" rows="4" placeholder="Chat secret"></textarea>
+			<input id="connectPassword" type="password" placeholder="Password"> 
+			<button id="connect">Join</button>
 		</center>
     </div>
 
-    <div id="loading" class="loading hide">
+	<div id="settings" class="step step-height-dialog hide">
+		<center>
+			<h1>Settings</h1>
+			<div class="separator"></div>
+			<p class="small-option">Change server (wss:// recomended)</p>
+			<input id="settingsServer" type="url" placeholder="wss://..."> 
+			<div class="separator"></div>
+			<p class="small-option">Delete text bubbles on page hide</p>
+			<input type="checkbox" id="settingsCleanOnHide" checked>
+			<div class="separator"></div>
+			<button id="settingsReset">Reset</button> 
+		</center>
+    </div>
+
+    <div id="loading" class="loading step-height-top hide">
 		<center> 
 			<div id="loadingSpinner" class="spinner"></div>
 
-			<p id="loadingStatus">Cargando...</p>
+			<p id="loadingStatus">Loading...</p>
 
 			<div id="loadingCopyLabel1" class="loading-copy-label">Click on the code to copy</div>
 			<div id="loadingCopyContainer"  class="loading-copy-container hide"> 
@@ -79,10 +90,10 @@
 		</center>
     </div>
 
-    <div id="error" class="error step hide"> 
+    <div id="error" class="error step step-height-top hide"> 
 		<center> 
 			<p id="errorText">Error!</p>
-			<button id="restart">Restart</button>
+			<button id="errorRestart">Restart</button>
 		</center>
     </div>
 </body>

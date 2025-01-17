@@ -6,13 +6,11 @@ const port = process.env.PORT || 8080;
 const server = new WebSocket.Server({ port });
 const doLog = true;
 
-
 class Chat {
     token = '';
     client1 = {};
     client2 = {};
 }
-
 
 // Store registered clients with their tokens
 const chats = {};

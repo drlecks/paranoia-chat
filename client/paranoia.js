@@ -13,47 +13,28 @@ document.body.onload = function() {
 
 class StepManager
 {
-    containerStepStart = null;
-    containerStepNew = null;
-    containerStepJoin = null;
-    containerLoading = null;
-    containerChat = null;
-
-    stepStart_New = null;
-    stepStart_Join = null;
- 
-    stepNew_Api = null;
-    stepNew_Pass = null;
-    stepNew_Generate = null;
- 
-    stepJoin_Data = null;
-    stepJoin_Pass = null;
-    stepJoin_Connect = null;
-
-    stepLoading_Status = null;
-
     constructor() {
 
         //elements
         this.containerStepStart = document.getElementById('step1');
         this.containerStepNew = document.getElementById('step2New');
         this.containerStepJoin = document.getElementById('step2Connect');
+        this.containerSettings = document.getElementById('settings'); 
         this.containerLoading = document.getElementById('loading'); 
         this.containerError = document.getElementById('error'); 
         this.containerChat = document.getElementById('chat'); 
 
+        this.stepHeader_Settings  = document.getElementById('headerSettings'); 
+        this.stepHeader_Burn  = document.getElementById('headerBurn'); 
+
         this.stepStart_New = document.getElementById('newConnection');
         this.stepStart_Join = document.getElementById('connectToUser');
 
-        this.stepNew_Pass = document.getElementById('newPassword');
-        this.stepNew_Api = document.getElementById('newProvider');
-        this.stepNew_ApiChange = document.getElementById('newChangeProvider');
+        this.stepNew_Pass = document.getElementById('newPassword'); 
         this.stepNew_Generate = document.getElementById('generateConnection');
 
         this.stepJoin_Data = document.getElementById('connectData');
-        this.stepJoin_Pass = document.getElementById('connectPassword');
-        this.stepJoin_Api = document.getElementById('connectProvider');
-        this.stepJoin_ApiChange = document.getElementById('connectChangeProvider');
+        this.stepJoin_Pass = document.getElementById('connectPassword');  
         this.stepJoin_Connect = document.getElementById('connect');
 
 		this.stepLoading_Spinner = document.getElementById('loadingSpinner');
@@ -63,37 +44,33 @@ class StepManager
         this.stepLoading_CopyLabel1 = document.getElementById('loadingCopyLabel1');
         this.stepLoading_CopyLabel2 = document.getElementById('loadingCopyLabel2');
 
-        this.stepError_Restart = document.getElementById('restart');
+        this.stepSettings_Server = document.getElementById('settingsServer');
+        this.stepSettings_Reset = document.getElementById('settingsReset');
+        this.stepSettings_CleanOnHide = document.getElementById('settingsCleanOnHide');
+        
+
+        this.stepError_Restart = document.getElementById('errorRestart');
         this.stepError_Text = document.getElementById('errorText');
 
         this.stepChat_Status = document.getElementById('chatStatus');
         this.stepChat_Content  = document.getElementById('chatContent');
         this.stepChat_Text  = document.getElementById('chatText'); 
-        this.stepChat_Send  = document.getElementById('chatSend'); 
-        this.stepChat_Burn  = document.getElementById('chatBurn'); 
+        this.stepChat_Send  = document.getElementById('chatSend');  
 
         //listeners
+        this.stepHeader_Burn.addEventListener('click', this.onButton_StepHeader_Burn.bind(this) , false);
+        this.stepHeader_Settings.addEventListener('click', this.onButton_StepHeader_Settings.bind(this) , false);
+
         this.stepStart_New.addEventListener('click', this.onButton_StepStart_New.bind(this) , false);
         this.stepStart_Join.addEventListener('click', this.onButton_StepStart_Join.bind(this) , false);
         this.stepNew_Generate.addEventListener('click', this.onButton_StepNew_Generate.bind(this) , false);
-        this.stepJoin_Connect.addEventListener('click', this.onButton_StepJoin_Connect.bind(this) , false);
-        this.stepError_Restart.addEventListener('click', this.onButton_StepError_Restart.bind(this) , false);
-
-        this.stepNew_ApiChange.addEventListener('click', () => { Utils.toggleClass(this.stepNew_ApiChange, 'hide'); Utils.toggleClass(this.stepNew_Api, 'hide');} , false);
-        this.stepJoin_ApiChange.addEventListener('click', () => { Utils.toggleClass(this.stepJoin_ApiChange, 'hide'); Utils.toggleClass(this.stepJoin_Api, 'hide');} , false);
-
+        this.stepJoin_Connect.addEventListener('click', this.onButton_StepJoin_Connect.bind(this) , false); 
 		this.stepLoading_CopyContainer.addEventListener('click', this.onButton_StepLoading_CopyContainer.bind(this) , false);
 		
-
-        
-        this.stepChat_Burn.addEventListener('click', this.onButton_StepChat_Burn.bind(this) , false);
+        this.stepSettings_Reset.addEventListener('click', this.onButton_StepSettings_Restart.bind(this) , false);
+        this.stepError_Restart.addEventListener('click', this.onButton_StepError_Restart.bind(this) , false);  
+ 
         this.stepChat_Send.addEventListener('click', this.onButton_StepChat_Send.bind(this) , false);
-		 
-        this.stepNew_Api.value = connection.socketUrl;
-        this.stepJoin_Api.value = connection.socketUrl;
-        this.stepChat_Status.innerHTML = "Hello!"; 
-        this.stepChat_Content.innerHTML = ""; 
-
         this.stepChat_Text.addEventListener('input', () => {
             // Restablece la altura para recalcular
             this.stepChat_Text.style.height = 'auto';
@@ -101,6 +78,20 @@ class StepManager
             // Ajusta la altura automáticamente según el contenido
             this.stepChat_Text.style.height = `${Math.min(this.stepChat_Text.scrollHeight, parseInt(getComputedStyle(this.stepChat_Text).lineHeight) * 4)}px`;
         });  
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                this.onVisibilityChange(false);
+            } else {
+                this.onVisibilityChange(true);
+            } 
+        });
+		 
+        //Prepare data
+        this.stepChat_Status.innerHTML = "Connecting..."; 
+        this.stepChat_Content.innerHTML = ""; 
+
+        this.stepSettings_Server.value = connection.socketUrl;
     }  
  
     showStepStart() {
@@ -108,9 +99,12 @@ class StepManager
 
         Utils.addClass(this.containerStepNew, 'hide');
         Utils.addClass(this.containerStepJoin, 'hide');
+        Utils.addClass(this.containerSettings, 'hide');
         Utils.addClass(this.containerLoading, 'hide'); 
         Utils.addClass(this.containerError, 'hide');
         Utils.addClass(this.containerChat, 'hide'); 
+
+        this.stepChat_Status.innerHTML = "Ready to connect"; 
     }
 
     showStepNew() {
@@ -118,6 +112,7 @@ class StepManager
 
         Utils.addClass(this.containerStepStart, 'hide');
         Utils.addClass(this.containerStepJoin, 'hide');
+        Utils.addClass(this.containerSettings, 'hide');
         Utils.addClass(this.containerLoading, 'hide'); 
         Utils.addClass(this.containerError, 'hide');
         Utils.addClass(this.containerChat, 'hide'); 
@@ -130,11 +125,23 @@ class StepManager
 
         Utils.addClass(this.containerStepStart, 'hide');
         Utils.addClass(this.containerStepNew, 'hide');
+        Utils.addClass(this.containerSettings, 'hide');
         Utils.addClass(this.containerLoading, 'hide'); 
         Utils.addClass(this.containerError, 'hide');
         Utils.addClass(this.containerChat, 'hide'); 
 
         this.stepJoin_Data.focus();
+    }
+
+    showSettings() { 
+        Utils.removeClass(this.containerSettings, 'hide');
+
+        Utils.addClass(this.containerStepStart, 'hide');
+        Utils.addClass(this.containerStepNew, 'hide');
+        Utils.addClass(this.containerStepJoin, 'hide');  
+        Utils.addClass(this.containerLoading, 'hide'); 
+        Utils.addClass(this.containerError, 'hide');  
+        Utils.addClass(this.containerChat, 'hide');
     }
 
     showLoading(status = '') {
@@ -143,6 +150,7 @@ class StepManager
         Utils.addClass(this.containerStepStart, 'hide');
         Utils.addClass(this.containerStepNew, 'hide');
         Utils.addClass(this.containerStepJoin, 'hide'); 
+        Utils.addClass(this.containerSettings, 'hide');
         Utils.addClass(this.containerError, 'hide'); 
         Utils.addClass(this.containerChat, 'hide'); 
 
@@ -165,17 +173,18 @@ class StepManager
 		Utils.removeClass(this.stepLoading_CopyContainer, 'hide');
 	}
 
-    showError(text = '') {
+    showError(text = '') { 
         Utils.removeClass(this.containerError, 'hide');
 
         Utils.addClass(this.containerStepStart, 'hide');
         Utils.addClass(this.containerStepNew, 'hide');
         Utils.addClass(this.containerStepJoin, 'hide'); 
+        Utils.addClass(this.containerSettings, 'hide');
         Utils.addClass(this.containerLoading, 'hide');
         Utils.addClass(this.containerChat, 'hide'); 
 
         if (text == '') this.stepLoading_Status.innerHTML = "Error, try it again!";
-        else            this.stepError_Text.innerHTML = text;
+        else            this.stepError_Text.innerHTML = text; 
     }
 
     showChat() { 
@@ -184,11 +193,20 @@ class StepManager
         Utils.addClass(this.containerStepStart, 'hide');
         Utils.addClass(this.containerStepNew, 'hide');
         Utils.addClass(this.containerStepJoin, 'hide'); 
+        Utils.addClass(this.containerSettings, 'hide');
         Utils.addClass(this.containerLoading, 'hide'); 
         Utils.addClass(this.containerError, 'hide'); 
 
         this.stepChat_Status.innerHTML = "Connected"; 
         this.stepChat_Text.focus();
+    }
+ 
+    onButton_StepHeader_Settings() {
+        this.showSettings();
+    }
+
+    onButton_StepHeader_Burn() {
+        connection.burn();
     }
 
     onButton_StepStart_New() {
@@ -212,8 +230,17 @@ class StepManager
     }
 
     onButton_StepError_Restart() {
-        this.stepChat_Status.innerHTML = "Hello!"; 
-        this.showStepStart();
+        connection.socket.close();
+        this.showLoading("Restart..."); 
+        steps.stepNew_Pass.value        = "";
+        steps.stepJoin_Pass.value       = "";
+        steps.stepJoin_Data.value       = "";
+        connection.initialServerPing(); 
+    } 
+
+    onButton_StepSettings_Restart() {
+        connection.burn(); 
+        connection.initialServerPing(); 
     }
 
 	onButton_StepLoading_CopyContainer(){
@@ -222,9 +249,7 @@ class StepManager
         Utils.removeClass(this.stepLoading_CopyLabel2, 'hide');
 	}
 
-    onButton_StepChat_Burn() {
-        connection.burn();
-    }
+    
 
     onButton_StepChat_Send() {
         const text = this.stepChat_Text.value;
@@ -241,12 +266,22 @@ class StepManager
         this.stepChat_Content.append(ele);
         this.stepChat_Content.scrollTop = this.stepChat_Content.scrollHeight;
     }
+
+    onVisibilityChange(visibility) {
+        if (!visibility) {
+            if (this.stepSettings_CleanOnHide.checked) {
+                document.querySelectorAll(".message").forEach(e => {
+                    e.innerHTML = "...";
+                });
+            }
+        }
+    }
 }
  
 class Connection
 {  
-    socketUrl       = "ws://localhost:8080";
-    //socketUrl       = "wss://paranoia-chat.onrender.com";
+    //socketUrl       = "ws://localhost:8080";
+    socketUrl       = "wss://paranoia-chat.onrender.com";
     socket          = null;
     sessionToken    = "";
     success         = false;
@@ -294,7 +329,12 @@ class Connection
             this.myPublic64 = await UtilsAsymetric.exportPublicKey(this.myKey.publicKey);
 
             //read first client data
-            const firstData         = await Utils.readSymetricData(steps.stepJoin_Pass.value, steps.stepJoin_Data.value); 
+            let firstData = null;
+            try {
+                firstData = await Utils.readSymetricData(steps.stepJoin_Pass.value, steps.stepJoin_Data.value); 
+            } catch(e) {
+                console.log(e);
+            }       
             
             if (firstData == null)                  { steps.showError("Read data error 1"); return; }
             if (firstData.sessionToken == null)     { steps.showError("Read data error 2"); return; }
@@ -315,7 +355,10 @@ class Connection
             this.success = true;
             steps.showChat();  
 
-        })().catch(console.error);  
+        })().catch((e) =>{
+            steps.showError("Conection Error B");
+            console.log(e);
+        });  
     } 
  
     sendChatMessage(text) { 
@@ -367,8 +410,7 @@ class Connection
         this.myKey.privateKey   = eraseString;
         this.myKey.publicKey    = eraseString;
         this.myKey.myPublic64   = eraseString; 
-        this.sessionToken       = eraseString;
-        this.success            = eraseString; 
+        this.sessionToken       = eraseString; 
         this.otherPublicKey     = eraseString;   
         this.serverEncrypt64    = eraseString;
         this.serverEncryptKey   = eraseString;
@@ -376,13 +418,18 @@ class Connection
         this.serverSignKey      = eraseString;
  
         this.socket.close();
+
+        this.success            = false; 
         steps.showError("Connection burned");
-    }
+    } 
+   
 
      
     //SOCKET
     initSocket(callback = null) {   
-        this.socket = new WebSocket(this.socketUrl); 
+        steps.stepChat_Status.innerHTML = "Connecting..."; 
+        const url =  (steps.stepSettings_Server.value == "") ? this.socketUrl: steps.stepSettings_Server.value;
+        this.socket = new WebSocket(url); 
         this.socket.onopen = () => {
           console.log("Connection established with the server"); 
           if (callback != null) callback();  
@@ -390,7 +437,7 @@ class Connection
         
         this.socket.onmessage   = this.onSocketMessage.bind(this);
         this.socket.onerror     = this.onSocketError.bind(this); 
-        this.socket.onclose     = this.onSocketClose.bind(this);
+        this.socket.onclose     = this.onSocketClose.bind(this); 
     } 
 
     sendSocketData(type, textData) { 
