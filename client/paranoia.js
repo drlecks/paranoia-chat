@@ -18,7 +18,6 @@ class StepManager
         //elements
         this.containerStepStart = document.getElementById('step1');
         this.containerStepNew = document.getElementById('step2New');
-        this.containerStepJoin = document.getElementById('step2Connect');
         this.containerSettings = document.getElementById('settings'); 
         this.containerLoading = document.getElementById('loading'); 
         this.containerError = document.getElementById('error'); 
@@ -28,27 +27,18 @@ class StepManager
         this.stepHeader_Burn  = document.getElementById('headerBurn'); 
 
         this.stepStart_New = document.getElementById('newConnection');
-        this.stepStart_Join = document.getElementById('connectToUser');
 
         this.stepNew_Pass = document.getElementById('newPassword'); 
         this.stepNew_Generate = document.getElementById('generateConnection');
 
-        this.stepJoin_Data = document.getElementById('connectData');
-        this.stepJoin_Pass = document.getElementById('connectPassword');  
-        this.stepJoin_Connect = document.getElementById('connect');
-
 		this.stepLoading_Spinner = document.getElementById('loadingSpinner');
         this.stepLoading_Status = document.getElementById('loadingStatus');
-		this.stepLoading_CopyContainer = document.getElementById('loadingCopyContainer');
-		this.stepLoading_CopyText = document.getElementById('loadingCopyText');
-        this.stepLoading_CopyLabel1 = document.getElementById('loadingCopyLabel1');
-        this.stepLoading_CopyLabel2 = document.getElementById('loadingCopyLabel2');
 
         this.stepSettings_Server = document.getElementById('settingsServer');
         this.stepSettings_Reset = document.getElementById('settingsReset');
+        this.stepSettings_Exit = document.getElementById('settingsExit');
         this.stepSettings_CleanOnHide = document.getElementById('settingsCleanOnHide');
         
-
         this.stepError_Restart = document.getElementById('errorRestart');
         this.stepError_Text = document.getElementById('errorText');
 
@@ -62,12 +52,10 @@ class StepManager
         this.stepHeader_Settings.addEventListener('click', this.onButton_StepHeader_Settings.bind(this) , false);
 
         this.stepStart_New.addEventListener('click', this.onButton_StepStart_New.bind(this) , false);
-        this.stepStart_Join.addEventListener('click', this.onButton_StepStart_Join.bind(this) , false);
         this.stepNew_Generate.addEventListener('click', this.onButton_StepNew_Generate.bind(this) , false);
-        this.stepJoin_Connect.addEventListener('click', this.onButton_StepJoin_Connect.bind(this) , false); 
-		this.stepLoading_CopyContainer.addEventListener('click', this.onButton_StepLoading_CopyContainer.bind(this) , false);
 		
         this.stepSettings_Reset.addEventListener('click', this.onButton_StepSettings_Restart.bind(this) , false);
+        this.stepSettings_Exit.addEventListener('click', this.onButton_StepSettings_Exit.bind(this) , false);
         this.stepError_Restart.addEventListener('click', this.onButton_StepError_Restart.bind(this) , false);  
  
         this.stepChat_Send.addEventListener('click', this.onButton_StepChat_Send.bind(this) , false);
@@ -98,7 +86,6 @@ class StepManager
         Utils.removeClass(this.containerStepStart, 'hide');
 
         Utils.addClass(this.containerStepNew, 'hide');
-        Utils.addClass(this.containerStepJoin, 'hide');
         Utils.addClass(this.containerSettings, 'hide');
         Utils.addClass(this.containerLoading, 'hide'); 
         Utils.addClass(this.containerError, 'hide');
@@ -111,7 +98,6 @@ class StepManager
         Utils.removeClass(this.containerStepNew, 'hide');
 
         Utils.addClass(this.containerStepStart, 'hide');
-        Utils.addClass(this.containerStepJoin, 'hide');
         Utils.addClass(this.containerSettings, 'hide');
         Utils.addClass(this.containerLoading, 'hide'); 
         Utils.addClass(this.containerError, 'hide');
@@ -120,25 +106,11 @@ class StepManager
         this.stepNew_Pass.focus();
     }
 
-    showStepConnect() {
-        Utils.removeClass(this.containerStepJoin, 'hide');
-
-        Utils.addClass(this.containerStepStart, 'hide');
-        Utils.addClass(this.containerStepNew, 'hide');
-        Utils.addClass(this.containerSettings, 'hide');
-        Utils.addClass(this.containerLoading, 'hide'); 
-        Utils.addClass(this.containerError, 'hide');
-        Utils.addClass(this.containerChat, 'hide'); 
-
-        this.stepJoin_Data.focus();
-    }
-
     showSettings() { 
         Utils.removeClass(this.containerSettings, 'hide');
 
         Utils.addClass(this.containerStepStart, 'hide');
         Utils.addClass(this.containerStepNew, 'hide');
-        Utils.addClass(this.containerStepJoin, 'hide');  
         Utils.addClass(this.containerLoading, 'hide'); 
         Utils.addClass(this.containerError, 'hide');  
         Utils.addClass(this.containerChat, 'hide');
@@ -149,7 +121,6 @@ class StepManager
 
         Utils.addClass(this.containerStepStart, 'hide');
         Utils.addClass(this.containerStepNew, 'hide');
-        Utils.addClass(this.containerStepJoin, 'hide'); 
         Utils.addClass(this.containerSettings, 'hide');
         Utils.addClass(this.containerError, 'hide'); 
         Utils.addClass(this.containerChat, 'hide'); 
@@ -161,30 +132,23 @@ class StepManager
 		Utils.addClass(this.stepLoading_CopyContainer, 'hide');
         Utils.addClass(this.stepLoading_CopyLabel1, 'hide');
         Utils.addClass(this.stepLoading_CopyLabel2, 'hide');
-    }
 
-	showLoadingCopy(copyText) {
-		this.stepLoading_CopyText.setAttribute('code', copyText);
-        this.stepLoading_CopyText.innerText = copyText.substring(0, 12)+"...";
-
-		Utils.addClass(this.stepLoading_Spinner, 'hide');
-        Utils.addClass(this.stepLoading_CopyLabel2, 'hide');
-        Utils.removeClass(this.stepLoading_CopyLabel1, 'hide');
-		Utils.removeClass(this.stepLoading_CopyContainer, 'hide');
-	}
+        console.warn("Show Loading: " + status);
+    } 
 
     showError(text = '') { 
         Utils.removeClass(this.containerError, 'hide');
 
         Utils.addClass(this.containerStepStart, 'hide');
         Utils.addClass(this.containerStepNew, 'hide');
-        Utils.addClass(this.containerStepJoin, 'hide'); 
         Utils.addClass(this.containerSettings, 'hide');
         Utils.addClass(this.containerLoading, 'hide');
         Utils.addClass(this.containerChat, 'hide'); 
 
         if (text == '') this.stepLoading_Status.innerHTML = "Error, try it again!";
         else            this.stepError_Text.innerHTML = text; 
+
+        console.error("Show Error: " + text);
     }
 
     showChat() { 
@@ -192,7 +156,6 @@ class StepManager
 
         Utils.addClass(this.containerStepStart, 'hide');
         Utils.addClass(this.containerStepNew, 'hide');
-        Utils.addClass(this.containerStepJoin, 'hide'); 
         Utils.addClass(this.containerSettings, 'hide');
         Utils.addClass(this.containerLoading, 'hide'); 
         Utils.addClass(this.containerError, 'hide'); 
@@ -213,28 +176,16 @@ class StepManager
         this.showStepNew();
     }
 
-    onButton_StepStart_Join() {
-        this.showStepConnect();
-    }
-
     onButton_StepNew_Generate() {
         this.showLoading(); 
         this.stepChat_Status.innerHTML = "Connecting..."; 
-        connection.connectClientA();
-    }
-
-    onButton_StepJoin_Connect() {
-        this.showLoading(); 
-        this.stepChat_Status.innerHTML = "Connecting..."; 
-        connection.connectClientB(); 
+        connection.linkClient();
     }
 
     onButton_StepError_Restart() {
         connection.socket.close();
         this.showLoading("Restart..."); 
         steps.stepNew_Pass.value        = "";
-        steps.stepJoin_Pass.value       = "";
-        steps.stepJoin_Data.value       = "";
         connection.initialServerPing(); 
     } 
 
@@ -243,14 +194,15 @@ class StepManager
         connection.initialServerPing(); 
     }
 
-	onButton_StepLoading_CopyContainer(){
-		const code = this.stepLoading_CopyText.getAttribute('code');
-		Utils.copyToClipboard(code);
-        Utils.removeClass(this.stepLoading_CopyLabel2, 'hide');
-	}
-
-    
-
+    onButton_StepSettings_Exit() {
+        if (connection.success) {
+            this.showChat();
+        }
+        else {
+            this.showStepStart();
+        }
+    } 
+     
     onButton_StepChat_Send() {
         const text = this.stepChat_Text.value;
         this.stepChat_Text.value = ""; 
@@ -280,11 +232,12 @@ class StepManager
  
 class Connection
 {  
-    //socketUrl       = "ws://localhost:8080";
-    socketUrl       = "wss://paranoia-chat.onrender.com";
-    socket          = null;
-    sessionToken    = "";
-    success         = false;
+    socketUrl               = "ws://localhost:8080";
+    //socketUrl             = "wss://paranoia-chat.onrender.com";
+    socket                  = null;
+    sessionToken            = "";
+    meHandshakeInitiator    = false;
+    success                 = false;
 
     myKey = {
         publicKey: "",
@@ -303,96 +256,111 @@ class Connection
     {
         steps.showLoading("Connecting to server, please wait...");
         this.initSocket.bind(this)( () => { 
-            steps.showStepStart();
+            (async () => {    
+                steps.showLoading("Signaling... Ok");  
+                await this.registerClient();
+            })().catch(console.error);  
         });
     }
 
-    connectClientA() {  
+    async registerClient() { 
+        steps.showLoading("Register...");  
+         
+        // Generar par de claves
+        this.myKey = await UtilsAsymetric.generateKeyPair();
+        this.myPublic64 = await UtilsAsymetric.exportPublicKey(this.myKey.publicKey);
+
+        this.socket.send(JSON.stringify({type: EToServer.REGISTER})); 
+    }
+
+    async linkClient() {  
+
+        steps.showLoading("Connecting..."); 
+        const pass = steps.stepNew_Pass.value;
+
+        const passCheck = Utils.checkPassword(pass);  
+        if (!passCheck) { steps.showError("Weak password"); return; } 
+
+        this.sessionToken = await Utils.deriveSessionToken(pass);
+        // Generar par de claves
+        this.myKey = await UtilsAsymetric.generateKeyPair();
+        this.myPublic64 = await UtilsAsymetric.exportPublicKey(this.myKey.publicKey);
+
+        this.socket.send(JSON.stringify({type: EToServer.LINK, key: this.myPublic64, token: this.sessionToken}));  
+    } 
+ 
+    sendHandshake() { 
+        steps.showLoading("Handshake...");
         (async () => {    
-            const passCheck = Utils.checkPassword(steps.stepNew_Pass.value);
-            if (!passCheck) { steps.showError("Weak password"); return; }
+            const pass = steps.stepNew_Pass.value;
+            const sendData = {
+                key:    await Utils.encryptSymetricData(this.myPublic64, pass),
+                token:  this.sessionToken
+            } 
 
-            // Generar par de claves
-            this.myKey = await UtilsAsymetric.generateKeyPair();
-            this.myPublic64 = await UtilsAsymetric.exportPublicKey(this.myKey.publicKey);
- 
-            this.socket.send(JSON.stringify({type: EToServer.REGISTER, key: this.myPublic64}));
-            steps.showLoading("Signaling... Ok"); 
+            const send2  = await UtilsAsymetric.hybridEncrypt(this.serverEncryptKey, sendData);  
+            send2.type   = EToServer.HANDSHAKE;
 
-        })().catch(console.error);  
-    } 
+            this.socket.send(JSON.stringify(send2));
+        })().catch(console.error);      
+    }
+    
+    sendChatMessage(text) {  
+        (async () => {    
+            const send   = await UtilsAsymetric.hybridEncrypt(this.otherPublicKey, text);
+            send.token   = this.sessionToken; 
 
-    connectClientB() {   
-        (async () => {   
-            // Generar par de claves
-            this.myKey = await UtilsAsymetric.generateKeyPair(); 
-            this.myPublic64 = await UtilsAsymetric.exportPublicKey(this.myKey.publicKey);
+            const send2  = await UtilsAsymetric.hybridEncrypt(this.serverEncryptKey, send);  
+            send2.type   = EToServer.MESSAGE;
 
-            //read first client data
-            let firstData = null;
-            try {
-                firstData = await Utils.readSymetricData(steps.stepJoin_Pass.value, steps.stepJoin_Data.value); 
-            } catch(e) {
-                console.log(e);
-            }       
-            
-            if (firstData == null)                  { steps.showError("Read data error 1"); return; }
-            if (firstData.sessionToken == null)     { steps.showError("Read data error 2"); return; }
-            if (firstData.serverEncrypt64 == null)  { steps.showError("Read data error 3"); return; }
-            if (firstData.serverSign64 == null)     { steps.showError("Read data error 4"); return; }
-
-            this.sessionToken       = firstData.sessionToken;
-            this.otherPublicKey     = await UtilsAsymetric.importPublicKey(firstData.clientPublic64);
-            this.serverEncrypt64    = firstData.serverEncrypt64;
-            this.serverEncryptKey   = await UtilsAsymetric.importPublicKey(this.serverEncrypt64);
-            this.serverSign64       = firstData.serverSign64;
-            this.serverSignKey      = await UtilsAsymetric.importPublicSignKey(this.serverSign64);
- 
-            //connect  
-            const encrypted = await Utils.encryptSymetricData(this.myPublic64, steps.stepJoin_Pass.value);
-            steps.stepJoin_Pass.value = "";
-            this.sendSocketData(EToServer.LINK, encrypted); 
-            this.success = true;
-            steps.showChat();  
-
-        })().catch((e) =>{
-            steps.showError("Conection Error B");
-            console.log(e);
-        });  
-    } 
- 
-    sendChatMessage(text) { 
-        this.sendSocketData(EToServer.MESSAGE, text);
+            this.socket.send(JSON.stringify(send2));
+        })().catch(console.error);     
     }
  
-    async onRegisterOk(registerData)
+    async onRegisterOk()
+    {   
+        steps.showLoading("Register OK!");  
+        steps.stepChat_Status.innerHTML = "Waiting for key phrase..."; 
+        steps.showStepStart();
+    }
+
+    async onLinkOk(linkData)
     {  
-        this.sessionToken       = registerData.token;
-        this.serverEncrypt64    = registerData.encryptKey;
+        this.serverEncrypt64    = linkData.encryptKey;
         this.serverEncryptKey    = await UtilsAsymetric.importPublicKey(this.serverEncrypt64);
-        this.serverSign64       = registerData.signKey;
+        this.serverSign64       = linkData.signKey;
         this.serverSignKey      = await UtilsAsymetric.importPublicSignKey(this.serverSign64);
 
-        const sendData = {
-            sessionToken:       this.sessionToken,
-            clientPublic64:     this.myPublic64,
-            serverEncrypt64:    this.serverEncrypt64,
-            serverSign64:       this.serverSign64,
-        }; 
-        const res = await Utils.encryptSymetricData(sendData, steps.stepNew_Pass.value); 
-
-        steps.showLoading("Waiting for client B... <br>Press the code below to copy to clipboard and send it to your other peer"); 
-        steps.showLoadingCopy(res); 
+        if (linkData.complete == 1) {
+            steps.showLoading("Signaling OK!"); 
+            this.meHandshakeInitiator = true;
+            this.sendHandshake();
+        }
+        else {
+            steps.showLoading("Waiting for other..."); 
+        }
     }
 
-    async onLinkData(data)
+    async onHandshakeData(handshakeData)
     { 
-        steps.showLoading("Waiting for connection..."); 
-        const otherData = await Utils.readSymetricData(steps.stepNew_Pass.value, data); 
+        const pass = steps.stepNew_Pass.value;
+        const otherData = await Utils.readSymetricData(pass, handshakeData.key); 
         this.otherPublicKey = await UtilsAsymetric.importPublicKey(otherData);
-        this.success = true;
-        steps.stepNew_Pass.value = "";
-        steps.showChat(); 
+
+        steps.showLoading("Handshake OK!");
+
+        if (this.meHandshakeInitiator) {
+            this.success = true;
+            steps.stepNew_Pass.value = "";
+            steps.showChat();  
+        }
+        else {
+            this.sendHandshake();
+
+            this.success = true;
+            steps.stepNew_Pass.value = "";
+            steps.showChat();  
+        }
     }
  
     async onChatMessage(message) { 
@@ -439,18 +407,6 @@ class Connection
         this.socket.onerror     = this.onSocketError.bind(this); 
         this.socket.onclose     = this.onSocketClose.bind(this); 
     } 
-
-    sendSocketData(type, textData) { 
-        (async () => {    
-            const send   = await UtilsAsymetric.hybridEncrypt(this.otherPublicKey, textData);
-            send.token   = this.sessionToken; 
-
-            const send2  = await UtilsAsymetric.hybridEncrypt(this.serverEncryptKey, send);  
-            send2.type   = type;
-
-            this.socket.send(JSON.stringify(send2));
-        })().catch(console.error);     
-    }
    
     onSocketMessage(event) { 
         (async () => {   
@@ -463,12 +419,15 @@ class Connection
             else
             { 
                 const result    = JSON.parse(data.result);  
-                const received  = await UtilsAsymetric.hybridDecrypt(this.myKey.privateKey, result);     
-
+                
                 if (data.status === EFromServer.REGISTER_OK) {
-                    console.log("Registration successful with token:");
-                    await this.onRegisterOk(received);
+                    console.log("Registration successful");
+                    await this.onRegisterOk();
                 } 
+                else if (data.status === EFromServer.LINK_OK) { 
+                    const received = await UtilsAsymetric.hybridDecrypt(this.myKey.privateKey, result);     
+                    await this.onLinkOk(received);
+                }
                 else 
                 {
                     //check signature
@@ -477,11 +436,14 @@ class Connection
                         steps.showError("Invalid server signature received");
                     }
                     else {
-                        if (data.status === EFromServer.LINK_DATA) {
-                            console.log("Link successful");
-                            await this.onLinkData(received);
-                        } else if (data.status === EFromServer.MESSAGE) {
+                        console.log(data.status);
+                        if (data.status === EFromServer.HANDSHAKE_DATA) { 
+                            await this.onHandshakeData(result);
+                        } else if (data.status === EFromServer.MESSAGE) { 
+                            const received  = await UtilsAsymetric.hybridDecrypt(this.myKey.privateKey, result);     
                             await this.onChatMessage(received);
+                        } else if (data.status === EFromServer.CLOSE) {
+                            await this.onChatClose();
                         } else {
                             console.log("Message unknown received:", data);
                             steps.showError("Message unknown received");

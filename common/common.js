@@ -3,13 +3,15 @@ const  crypto = (typeof window === 'undefined') ? require('crypto') : window.cry
 class EToServer {
     static REGISTER = 'r';
     static LINK = 'l';
+    static HANDSHAKE = 'h';
     static MESSAGE = 'm';
 }
 
 class EFromServer {
     static ERROR = 'er';
     static REGISTER_OK = 'ro';
-    static LINK_DATA = 'ld';
+    static LINK_OK = 'lo';
+    static HANDSHAKE_DATA = 'hd';
     static CLOSE = 'cl';
     static MESSAGE = 'me';
 }
@@ -97,7 +99,7 @@ class Utils {
         return bytes;
     }
 
-    // Derivar una clave con PBKDF2
+    // Derivar una clave con PBKDF2 (solo navegador)
     static async deriveKey(password, salt) {
         const encoder = new TextEncoder();
         const passwordKey = await crypto.subtle.importKey(
@@ -125,6 +127,29 @@ class Utils {
         );
 
         return key;
+    }
+
+    static async deriveSessionToken(pass) {
+        const encoder = new TextEncoder();
+        const passBuffer = encoder.encode(pass);
+        const salt = encoder.encode(new Date().toISOString().split("T")[0]); // "YYYY-MM-DD"
+    
+        if (typeof window !== "undefined" && window.crypto && window.crypto.subtle) {
+            // Navegador (Web Crypto API)
+            const keyMaterial = await crypto.subtle.importKey(
+                "raw", passBuffer, { name: "PBKDF2" }, false, ["deriveBits"]
+            );
+            const derivedBits = await crypto.subtle.deriveBits(
+                { name: "PBKDF2", salt: salt, iterations: 100000, hash: "SHA-256" },
+                keyMaterial, 256
+            );
+            return Array.from(new Uint8Array(derivedBits))
+                .map(b => b.toString(16).padStart(2, "0")).join("");
+        } else {
+            // Node.js
+            const crypto = require("crypto");
+            return crypto.pbkdf2Sync(pass, salt, 100000, 32, "sha256").toString("hex");
+        }
     }
 
     // Cifrar texto

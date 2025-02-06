@@ -1,19 +1,24 @@
 const WebSocket = require('ws');
 const crypto = require('crypto');
 const { Utils, UtilsAsymetric, EToServer, EFromServer } = require('../common/common');
-
+ 
 const port = process.env.PORT || 8080;
 const server = new WebSocket.Server({ port });
-const doLog = true;
+const doLog = true; 
 
+clog(`WebSocket server running on port ${port}`);
+ 
 class Chat {
     token = '';
+    
     client1 = {};
     client2 = {};
 }
-
+ 
+ 
 // Store registered clients with their tokens
 const chats = {};
+var clientCont = 0;
 
 function clog(message) {
     if (doLog) console.log(message);
@@ -34,10 +39,10 @@ async function getAllFromReceived(received) {
         chat: null,
         data: null
     }; 
-    res.data = await UtilsAsymetric.hybridDecrypt( myEncryptKey.privateKey, received );  
+    res.data = await UtilsAsymetric.hybridDecrypt(myEncryptKey.privateKey, received );  
     
     // Validate the token format
-    if (!/^[a-f0-9]{128}$/.test(res.data.token)) {
+    if (!/^[a-f0-9]{64}$/.test(res.data.token)) {
         res.success = false;
         res.error = 'Invalid token format received';
         cerror(res.data);
@@ -53,8 +58,7 @@ async function getAllFromReceived(received) {
     return res;
 }
 
-clog(`WebSocket server running on port ${port}`);
-
+ 
 var myEncryptKey = {};
 var mySignKey = {};
 (async () => {
@@ -64,7 +68,8 @@ var mySignKey = {};
     mySignKey.key64     = await UtilsAsymetric.exportPublicKey(mySignKey.publicKey);
     clog(`Key generated`);
 })().catch(cerror);
-
+  
+     
 server.on('connection', (ws) => {
     clog('New client connected');
 
@@ -74,31 +79,56 @@ server.on('connection', (ws) => {
                 const received  = JSON.parse(message);
                 const type      = received.type;
 
-                if (type === EToServer.REGISTER) {
-                    const chat = new Chat();
-                    chat.token          = crypto.randomBytes(64).toString('hex');
-                    chat.client1        = ws;
-                    chats[chat.token]   = chat;
- 
-                    const sendData = {
-                        token:      chat.token,
-                        encryptKey: myEncryptKey.key64,
-                        signKey:    mySignKey.key64,
-                    }    
-                    const clientKey = await UtilsAsymetric.importPublicKey(received.key); 
-                    const send      = await UtilsAsymetric.hybridEncrypt(clientKey, sendData)  
-
-                    clog(`Client registered with token: ${chat.token}`);
-                    await returnDataToClient(ws, EFromServer.REGISTER_OK, JSON.stringify(send));
+                if (type === EToServer.REGISTER) {  
+                    clientCont++;
+                    clog(`Client registered ${clientCont}`);
+                    await returnDataToClient(ws, EFromServer.REGISTER_OK, 1);
                 } else if (type === EToServer.LINK) {
-                    let res = await getAllFromReceived(received); 
-                    if (!res.success) { 
+
+                    const token      = received.token; 
+                    if (!chats[token]) {
+                        const chat = new Chat();
+                        chat.token          = token;
+                        chat.client1        = ws;
+                        chats[chat.token]   = chat; 
+
+                        const sendData = {
+                            encryptKey: myEncryptKey.key64,
+                            signKey:    mySignKey.key64,
+                            complete:   0
+                        }    
+                        const clientKey = await UtilsAsymetric.importPublicKey(received.key); 
+                        const send      = await UtilsAsymetric.hybridEncrypt(clientKey, sendData)  
+
+                        await returnDataToClient(chat.client1, EFromServer.LINK_OK, JSON.stringify(send));
+    
+                        clog(`chat generated: ${token}`); 
+                    }
+                    else {
+                        const chat      = chats[token];
+                        chat.client2    = ws;
+
+                        const sendData = {
+                            encryptKey: myEncryptKey.key64,
+                            signKey:    mySignKey.key64,
+                            complete:   1
+                        }    
+                        const clientKey = await UtilsAsymetric.importPublicKey(received.key); 
+                        const send      = await UtilsAsymetric.hybridEncrypt(clientKey, sendData)  
+
+                        await returnDataToClient(chat.client2, EFromServer.LINK_OK, JSON.stringify(send));
+    
+                        clog(`chat completed: ${token}`); 
+                    }
+                } else if (type === EToServer.HANDSHAKE) {
+                    let res = await getAllFromReceived(received);
+                    if (!res.success) {
                         await returnDataToClient(ws, EFromServer.ERROR, btoa(res.error));
                         cerror("error: " + res.error); 
                     }
                     else {
-                        res.chat.client2 = ws;
-                        await returnDataToClient(res.chat.client1, EFromServer.LINK_DATA, JSON.stringify(res.data));
+                        const sendClient = ws == res.chat.client1 ? res.chat.client2 : res.chat.client1;
+                        await returnDataToClient(sendClient, EFromServer.HANDSHAKE_DATA, JSON.stringify(res.data) );
                     } 
                 } else if (type === EToServer.MESSAGE) {
                     let res = await getAllFromReceived(received);

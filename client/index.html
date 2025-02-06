@@ -39,16 +39,15 @@
 		<center>
         	<h1>Paranoia Chat</h1>
         	<button id="newConnection">New Chat</button>
-       		<button id="connectToUser">Join Chat</button> 
 		</center>
     </div>
 
     <div id="step2New" class="step step-height-dialog hide">
 		<center>
 			<h1>New Chat</h1> 
-			<input id="newPassword" type="password" placeholder="Password"> 
-			<p class="small-option">At least 6 characters</p>
-			<button id="generateConnection">Generate chat secret</button>
+			<input id="newPassword" type="password" placeholder="Secret Phrase"> 
+			<p class="small-option">At least <b>3 different words</b> and <b>12 characters</b></p>
+			<button id="generateConnection">Generate chat</button>
 		</center>
     </div>
 
@@ -71,7 +70,8 @@
 			<p class="small-option">Delete text bubbles on page hide</p>
 			<input type="checkbox" id="settingsCleanOnHide" checked>
 			<div class="separator"></div>
-			<button id="settingsReset">Reset</button> 
+			<button id="settingsReset">Reset Connection</button> 
+			<button id="settingsExit">Back</button> 
 		</center>
     </div>
 
@@ -80,13 +80,6 @@
 			<div id="loadingSpinner" class="spinner"></div>
 
 			<p id="loadingStatus">Loading...</p>
-
-			<div id="loadingCopyLabel1" class="loading-copy-label">Click on the code to copy</div>
-			<div id="loadingCopyContainer"  class="loading-copy-container hide"> 
-				<div id="loadingCopyText" class="loading-copy-text">asdfasdfasdfasdfsdfsadfdsfasdfasdfasdfasdfasdfasdfasdfsdfsdfsdfasdfasdfasdfasdfasdfasdfasdfasdf</div>
-				<div class="loading-copy-icon">&#128203;</div>
-			</div>
-			<div id="loadingCopyLabel2" class="loading-copy-label loading-copy-label-done hide">✅ Text copied to clipboard!</div>
 		</center>
     </div>
 
