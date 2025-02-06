@@ -239,11 +239,8 @@ class Connection
     meHandshakeInitiator    = false;
     success                 = false;
 
-    myKey = {
-        publicKey: "",
-        privateKey: "",
-    }; 
-    myPublic64 = ""; 
+    linkKey = { publicKey: "", privateKey: "", public64: "" };   
+    myKey   = { publicKey: "", privateKey: "", public64: "" };  
 
     otherPublicKey      = null;   
     serverEncrypt64     = "";
@@ -264,12 +261,7 @@ class Connection
     }
 
     async registerClient() { 
-        steps.showLoading("Register...");  
-         
-        // Generar par de claves
-        this.myKey = await UtilsAsymetric.generateKeyPair();
-        this.myPublic64 = await UtilsAsymetric.exportPublicKey(this.myKey.publicKey);
-
+        steps.showLoading("Register...");   
         this.socket.send(JSON.stringify({type: EToServer.REGISTER})); 
     }
 
@@ -282,11 +274,14 @@ class Connection
         if (!passCheck) { steps.showError("Weak password"); return; } 
 
         this.sessionToken = await Utils.deriveSessionToken(pass);
+        
         // Generar par de claves
-        this.myKey = await UtilsAsymetric.generateKeyPair();
-        this.myPublic64 = await UtilsAsymetric.exportPublicKey(this.myKey.publicKey);
+        this.linkKey            = await UtilsAsymetric.generateKeyPair();
+        this.linkKey.public64   = await UtilsAsymetric.exportPublicKey(this.linkKey.publicKey);
+        this.myKey              = await UtilsAsymetric.generateKeyPair();
+        this.myKey.public64     = await UtilsAsymetric.exportPublicKey(this.myKey.publicKey);
 
-        this.socket.send(JSON.stringify({type: EToServer.LINK, key: this.myPublic64, token: this.sessionToken}));  
+        this.socket.send(JSON.stringify({type: EToServer.LINK, key: this.linkKey.public64, token: this.sessionToken}));  
     } 
  
     sendHandshake() { 
@@ -294,7 +289,7 @@ class Connection
         (async () => {    
             const pass = steps.stepNew_Pass.value;
             const sendData = {
-                key:    await Utils.encryptSymetricData(this.myPublic64, pass),
+                key:    await Utils.encryptSymetricData(this.myKey.public64, pass),
                 token:  this.sessionToken
             } 
 
@@ -332,7 +327,7 @@ class Connection
         this.serverSignKey      = await UtilsAsymetric.importPublicSignKey(this.serverSign64);
 
         if (linkData.complete == 1) {
-            steps.showLoading("Signaling OK!"); 
+            steps.showLoading("Connecting OK!"); 
             this.meHandshakeInitiator = true;
             this.sendHandshake();
         }
@@ -375,9 +370,12 @@ class Connection
         steps.stepJoin_Pass.value       = "";
         steps.stepJoin_Data.value       = "";
  
+        this.linkKey.privateKey = eraseString;
+        this.linkKey.publicKey  = eraseString;
+        this.linkKey.public64   = eraseString; 
         this.myKey.privateKey   = eraseString;
         this.myKey.publicKey    = eraseString;
-        this.myKey.myPublic64   = eraseString; 
+        this.myKey.public64     = eraseString; 
         this.sessionToken       = eraseString; 
         this.otherPublicKey     = eraseString;   
         this.serverEncrypt64    = eraseString;
@@ -418,14 +416,14 @@ class Connection
             }
             else
             { 
-                const result    = JSON.parse(data.result);  
+                const result = JSON.parse(data.result);  
                 
                 if (data.status === EFromServer.REGISTER_OK) {
                     console.log("Registration successful");
                     await this.onRegisterOk();
                 } 
                 else if (data.status === EFromServer.LINK_OK) { 
-                    const received = await UtilsAsymetric.hybridDecrypt(this.myKey.privateKey, result);     
+                    const received = await UtilsAsymetric.hybridDecrypt(this.linkKey.privateKey, result);     
                     await this.onLinkOk(received);
                 }
                 else 
