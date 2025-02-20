@@ -6,23 +6,24 @@ document.body.onload = function() {
     connection = new Connection();
     steps = new StepManager();   
 
-    if (demo != null)   demo.demoStart();
-    else                connection.initialServerPing();
+    steps.showStepStart(); 
 };
 
 
 class StepManager
 {
     constructor() {
-
-        //elements
+ 
+        //elements 
         this.containerStepStart = document.getElementById('step1');
         this.containerStepNew = document.getElementById('step2New');
         this.containerSettings = document.getElementById('settings'); 
+        this.containerEsteganography = document.getElementById('esteganography'); 
         this.containerLoading = document.getElementById('loading'); 
         this.containerError = document.getElementById('error'); 
         this.containerChat = document.getElementById('chat'); 
 
+        this.stepHeader_Esteganography  = document.getElementById('headerEsteganography'); 
         this.stepHeader_Settings  = document.getElementById('headerSettings'); 
         this.stepHeader_Burn  = document.getElementById('headerBurn'); 
 
@@ -38,6 +39,17 @@ class StepManager
         this.stepSettings_Reset = document.getElementById('settingsReset');
         this.stepSettings_Exit = document.getElementById('settingsExit');
         this.stepSettings_CleanOnHide = document.getElementById('settingsCleanOnHide');
+
+        this.stepEsteganography_Decode = document.getElementById('esteganographyDecode');
+        this.stepEsteganography_Encode = document.getElementById('esteganographyEncode');
+        this.stepEsteganography_Exit = document.getElementById('esteganographyExit');
+        
+        this.stepEsteganography_DecodeImage = document.getElementById('esteganographyDecodeImage');
+        this.stepEsteganography_DecodeResult = document.getElementById('esteganographyDecodeResult');
+        this.stepEsteganography_EncodeImage = document.getElementById('esteganographyEncodeImage');
+        this.stepEsteganography_EncodeText = document.getElementById('esteganographyEncodeText'); 
+        this.stepEsteganography_EncodeResult = document.getElementById('esteganographyEncodeResult');
+        this.stepEsteganography_EncodeDownload = document.getElementById('esteganographyEncodeDownload');
         
         this.stepError_Restart = document.getElementById('errorRestart');
         this.stepError_Text = document.getElementById('errorText');
@@ -50,6 +62,8 @@ class StepManager
         //listeners
         this.stepHeader_Burn.addEventListener('click', this.onButton_StepHeader_Burn.bind(this) , false);
         this.stepHeader_Settings.addEventListener('click', this.onButton_StepHeader_Settings.bind(this) , false);
+        this.stepHeader_Esteganography.addEventListener('click', this.onButton_StepHeader_Esteganography.bind(this) , false);
+        
 
         this.stepStart_New.addEventListener('click', this.onButton_StepStart_New.bind(this) , false);
         this.stepNew_Generate.addEventListener('click', this.onButton_StepNew_Generate.bind(this) , false);
@@ -57,6 +71,12 @@ class StepManager
         this.stepSettings_Reset.addEventListener('click', this.onButton_StepSettings_Restart.bind(this) , false);
         this.stepSettings_Exit.addEventListener('click', this.onButton_StepSettings_Exit.bind(this) , false);
         this.stepError_Restart.addEventListener('click', this.onButton_StepError_Restart.bind(this) , false);  
+
+        this.stepEsteganography_Decode.addEventListener('click', this.onButton_StepEsteganography_Decode.bind(this) , false);
+        this.stepEsteganography_Encode.addEventListener('click', this.onButton_StepEsteganography_Encode.bind(this) , false);
+        this.stepEsteganography_Exit.addEventListener('click', this.onButton_StepEsteganography_Exit.bind(this) , false);
+        
+	
  
         this.stepChat_Send.addEventListener('click', this.onButton_StepChat_Send.bind(this) , false);
         this.stepChat_Text.addEventListener('input', () => {
@@ -82,48 +102,43 @@ class StepManager
         this.stepSettings_Server.value = connection.socketUrl;
     }  
  
-    showStepStart() {
-        Utils.removeClass(this.containerStepStart, 'hide');
-
+    hideAll() { 
+        Utils.addClass(this.containerStepStart, 'hide'); 
         Utils.addClass(this.containerStepNew, 'hide');
         Utils.addClass(this.containerSettings, 'hide');
+        Utils.addClass(this.containerEsteganography, 'hide'); 
         Utils.addClass(this.containerLoading, 'hide'); 
         Utils.addClass(this.containerError, 'hide');
         Utils.addClass(this.containerChat, 'hide'); 
+    }
+  
+    showStepStart() {
+        this.hideAll();
+        Utils.removeClass(this.containerStepStart, 'hide'); 
 
         this.stepChat_Status.innerHTML = "Ready to connect"; 
     }
 
     showStepNew() {
-        Utils.removeClass(this.containerStepNew, 'hide');
-
-        Utils.addClass(this.containerStepStart, 'hide');
-        Utils.addClass(this.containerSettings, 'hide');
-        Utils.addClass(this.containerLoading, 'hide'); 
-        Utils.addClass(this.containerError, 'hide');
-        Utils.addClass(this.containerChat, 'hide'); 
+        this.hideAll();
+        Utils.removeClass(this.containerStepNew, 'hide'); 
 
         this.stepNew_Pass.focus();
     }
 
     showSettings() { 
-        Utils.removeClass(this.containerSettings, 'hide');
+        this.hideAll();
+        Utils.removeClass(this.containerSettings, 'hide'); 
+    }
 
-        Utils.addClass(this.containerStepStart, 'hide');
-        Utils.addClass(this.containerStepNew, 'hide');
-        Utils.addClass(this.containerLoading, 'hide'); 
-        Utils.addClass(this.containerError, 'hide');  
-        Utils.addClass(this.containerChat, 'hide');
+    showEsteganography() { 
+        this.hideAll();
+        Utils.removeClass(this.containerEsteganography, 'hide'); 
     }
 
     showLoading(status = '') {
-        Utils.removeClass(this.containerLoading, 'hide');
-
-        Utils.addClass(this.containerStepStart, 'hide');
-        Utils.addClass(this.containerStepNew, 'hide');
-        Utils.addClass(this.containerSettings, 'hide');
-        Utils.addClass(this.containerError, 'hide'); 
-        Utils.addClass(this.containerChat, 'hide'); 
+        this.hideAll();
+        Utils.removeClass(this.containerLoading, 'hide'); 
 
         if (status == '')   this.stepLoading_Status.innerHTML = "Loading...";
         else                this.stepLoading_Status.innerHTML = status;
@@ -137,13 +152,8 @@ class StepManager
     } 
 
     showError(text = '') { 
-        Utils.removeClass(this.containerError, 'hide');
-
-        Utils.addClass(this.containerStepStart, 'hide');
-        Utils.addClass(this.containerStepNew, 'hide');
-        Utils.addClass(this.containerSettings, 'hide');
-        Utils.addClass(this.containerLoading, 'hide');
-        Utils.addClass(this.containerChat, 'hide'); 
+        this.hideAll();
+        Utils.removeClass(this.containerError, 'hide'); 
 
         if (text == '') this.stepLoading_Status.innerHTML = "Error, try it again!";
         else            this.stepError_Text.innerHTML = text; 
@@ -152,28 +162,28 @@ class StepManager
     }
 
     showChat() { 
-        Utils.removeClass(this.containerChat, 'hide');
-
-        Utils.addClass(this.containerStepStart, 'hide');
-        Utils.addClass(this.containerStepNew, 'hide');
-        Utils.addClass(this.containerSettings, 'hide');
-        Utils.addClass(this.containerLoading, 'hide'); 
-        Utils.addClass(this.containerError, 'hide'); 
+        this.hideAll();
+        Utils.removeClass(this.containerChat, 'hide'); 
 
         this.stepChat_Status.innerHTML = "Connected"; 
         this.stepChat_Text.focus();
     }
  
+    onButton_StepHeader_Esteganography() {
+        this.showEsteganography();
+    }
+
     onButton_StepHeader_Settings() {
         this.showSettings();
     }
-
+ 
     onButton_StepHeader_Burn() {
         connection.burn();
     }
 
     onButton_StepStart_New() {
-        this.showStepNew();
+        if (demo != null)   demo.demoStart();
+        else                connection.initialServerPing(); 
     }
 
     onButton_StepNew_Generate() {
@@ -183,15 +193,14 @@ class StepManager
     }
 
     onButton_StepError_Restart() {
-        connection.socket.close();
+        if (connection.socket != null) connection.socket.close();
         this.showLoading("Restart..."); 
-        steps.stepNew_Pass.value        = "";
-        connection.initialServerPing(); 
+        steps.stepNew_Pass.value = "";
+        steps.showStepStart(); 
     } 
 
     onButton_StepSettings_Restart() {
         connection.burn(); 
-        connection.initialServerPing(); 
     }
 
     onButton_StepSettings_Exit() {
@@ -202,7 +211,25 @@ class StepManager
             this.showStepStart();
         }
     } 
-     
+ 
+    onButton_StepEsteganography_Decode() {
+        Esteganography.getPixelsFromImage(this.stepEsteganography_DecodeImage, (pixels) => {
+            if (pixels == null) return;
+
+            const message = Esteganography.extractMessage(pixels);
+            this.stepEsteganography_DecodeResult.innerText = message;
+        }); 
+    }
+
+    onButton_StepEsteganography_Encode() {
+        const message = this.stepEsteganography_EncodeText.value;
+        Esteganography.insertMessageInHtmlImage(this.stepEsteganography_EncodeImage, message, this.stepEsteganography_EncodeResult, this.stepEsteganography_EncodeDownload); 
+    }
+
+    onButton_StepEsteganography_Exit() {
+        this.showStepStart();
+    }
+   
     onButton_StepChat_Send() {
         const text = this.stepChat_Text.value;
         this.stepChat_Text.value = ""; 
@@ -227,7 +254,7 @@ class StepManager
                 });
             }
         }
-    }
+    } 
 }
  
 class Connection
@@ -316,7 +343,7 @@ class Connection
     {   
         steps.showLoading("Register OK!");  
         steps.stepChat_Status.innerHTML = "Waiting for key phrase..."; 
-        steps.showStepStart();
+        steps.showStepNew();
     }
 
     async onLinkOk(linkData)
@@ -367,8 +394,6 @@ class Connection
         const eraseString  = "XXXXXXXXXXX";
 
         steps.stepNew_Pass.value        = "";
-        steps.stepJoin_Pass.value       = "";
-        steps.stepJoin_Data.value       = "";
  
         this.linkKey.privateKey = eraseString;
         this.linkKey.publicKey  = eraseString;
@@ -383,7 +408,7 @@ class Connection
         this.serverSign64       = eraseString;
         this.serverSignKey      = eraseString;
  
-        this.socket.close();
+        if (this.socket != null) this.socket.close();
 
         this.success            = false; 
         steps.showError("Connection burned");

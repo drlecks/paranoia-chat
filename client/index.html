@@ -6,7 +6,8 @@
     <title>Paranoia Chat</title> 
 	<script>var module = {};</script>
 	<script src="../common/common.js" defer>var module = {};</script>
-    <script src="paranoia.js" defer></script>
+	<script src="esteganography.js" defer></script>
+    <script src="paranoia.js" defer></script> 
 	<link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,6 +16,7 @@
 		<div class="top-bar">
 			<div>PARANOIA CHAT</div>
 			<div class="icons">
+				<i id="headerEsteganography" class="icon-image">🧧</i>
 				<i id="headerSettings" class="icon-settings">⚙️</i>
 				<i id="headerBurn" class="icon-logout">🔥</i>
 			</div>
@@ -30,7 +32,7 @@
 
 	<footer class="step-height-base">
 		<div class="input-container">
-			<textarea id="chatText" placeholder="Escribe un mensaje..." rows="1"></textarea>
+			<textarea id="chatText" placeholder="Your message..." rows="1"></textarea>
 			<button id="chatSend">➤</button>
 		</div>
 	</footer>  
@@ -38,7 +40,7 @@
     <div id="step1" class="step step-height-dialog">
 		<center>
         	<h1>Paranoia Chat</h1>
-        	<button id="newConnection">New Chat</button>
+        	<button id="newConnection">Connect</button>
 		</center>
     </div>
 
@@ -64,17 +66,45 @@
 		<center>
 			<h1>Settings</h1>
 			<div class="separator"></div>
+
 			<p class="small-option">Change server (wss:// recomended)</p>
 			<input id="settingsServer" type="url" placeholder="wss://..."> 
 			<div class="separator"></div>
+
 			<p class="small-option">Delete text bubbles on page hide</p>
 			<input type="checkbox" id="settingsCleanOnHide" checked>
 			<div class="separator"></div>
+
 			<button id="settingsReset">Reset Connection</button> 
 			<button id="settingsExit">Back</button> 
 		</center>
     </div>
 
+	<div id="esteganography" class="step step-height-dialog hide">
+		<center>
+			<h1>Hide messages in  images</h1>
+			<div class="separator"></div>
+
+			<p class="small-option">Get message from image:</p>
+			<input id="esteganographyDecodeImage" type="file"  accept="image/*"> 
+			<button id="esteganographyDecode">Decode</button>
+			<p id="esteganographyDecodeResult" class=""></p>
+			<div class="separator"></div>
+
+			<input id="esteganographyEncodeImage" type="file"  accept="image/*"> 
+			<input id="esteganographyEncodeText" type="password" placeholder="Secret Phrase"> 
+			<p class="small-option">At least <b>3 different words</b> and <b>12 characters</b></p>
+			<button id="esteganographyEncode">Encode</button>
+			<img id="esteganographyEncodeResult" class="" style="width:100px">
+			<a id="esteganographyEncodeDownload" download="image.png">Download Image</a>
+			<div class="separator"></div>
+			 
+			<button id="esteganographyExit">Back</button> 
+
+			<canvas class="hide" id="esteganographyCanvas"></canvas>
+		</center>
+    </div>
+ 
     <div id="loading" class="loading step-height-top hide">
 		<center> 
 			<div id="loadingSpinner" class="spinner"></div>
