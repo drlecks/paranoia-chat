@@ -1,0 +1,276 @@
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+body {
+	font-family: Arial, sans-serif;
+	display: flex;
+	flex-direction: column;
+	height: 100vh; 
+	margin: 0 auto;
+	width: -webkit-fill-available;
+	max-width: 800px;
+	background-color: #121212;
+	color: #e0e0e0;
+}
+
+center {
+	margin: 0 auto;
+	max-width: 800px;
+	height: 100vh;
+
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+
+	padding: 20px;
+	text-align: center;
+}
+
+.step { 
+	height: 100vh;
+	width: -webkit-fill-available; 
+	
+	position:absolute; 
+	top:0;
+	left:0;
+	background-color: #121212;
+}
+
+.step-height-top {
+	z-index: 500;
+}
+
+.step-height-header {
+	z-index: 400;
+}
+
+.step-height-dialog {
+	z-index: 300;
+}
+
+.step-height-base {
+	z-index: 1;
+}
+
+.separator{
+	width: 100%;
+	border-bottom: 1px solid #292929;
+	margin: 10px auto;
+}
+
+.step h1 {
+	margin-bottom: 20px;
+	font-size: 24px;
+}
+
+.step input, .step textarea, .step button, .step select {
+	margin: 10px 0;
+	padding: 10px;
+	font-size: 16px;
+	border: none;
+	border-radius: 8px;
+	outline: none;
+}
+
+.step input, .step textarea, .step select {
+	width: 80%;
+	background-color: #333333;
+	color: #e0e0e0;
+}
+
+#chatText { 
+	max-height: calc(1.2em * 4); 
+	line-height: 1.2em; 
+	resize: none; 
+	overflow-y: hidden;
+  }
+
+.step button {
+	background-color: #4a90e2;
+	color: white;
+	cursor: pointer;
+}
+
+.step button:hover {
+	background-color: #357abd;
+}
+
+.loading {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	height: 100vh;
+	width: -webkit-fill-available; 
+	position:absolute; 
+	top:0;
+	left:0;
+	background-color: #121212;
+	padding: 10%;
+}
+
+.loading p {
+	margin: 20px auto;
+	font-size: 18px;
+}
+
+.error {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	height: 100vh;
+	width: 100%;
+	position:absolute; 
+	top:0;
+	left:0;
+	background-color: #121212;
+}
+
+.error p {
+	margin-top: 20px;
+	font-size: 18px;
+	color: #f35050;
+}
+
+header {
+	display: flex;
+	flex-direction: column;
+	background-color: #1f1f1f;
+	color: white;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+header .top-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px 20px;
+}
+
+header .status-bar {
+	text-align: center;
+	padding: 5px 0;
+	font-size: 12px;
+	background-color: #282828;
+	color: #a0a0a0;
+}
+
+header .icons {
+	display: flex;
+	gap: 15px;
+}
+
+header .icons i {
+	font-size: 18px;
+	cursor: pointer;
+}
+
+main {
+	flex: 1;
+	overflow-y: auto;
+	padding: 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	background-color: #181818;
+}
+
+.message {
+	max-width: 70%;
+	padding: 10px 15px;
+	border-radius: 20px;
+	font-size: 14px;
+	line-height: 1.4;
+}
+
+.message.sent {
+	align-self: flex-end;
+	background-color: #4a90e2;
+	color: white;
+}
+
+.message.received {
+	align-self: flex-start;
+	background-color: #333333;
+	color: #e0e0e0;
+}
+
+footer {
+	display: flex;
+	align-items: center;
+	padding: 10px 20px;
+	background-color: #1f1f1f;
+	box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.5);
+}
+
+footer .input-container {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	background-color: #333333;
+	border-radius: 20px;
+	padding: 5px 10px;
+}
+
+footer .input-container textarea {
+	flex: 1;
+	background-color: transparent;
+	color: #e0e0e0;
+	border: none;
+	outline: none;
+	font-size: 14px;
+	resize: none;
+	max-height: calc(1.5em * 4); /* Max height 4 lines */
+	overflow-y: auto;
+	line-height: 1.5;
+}
+
+footer button {
+	padding: 10px;
+	background-color: #4a90e2;
+	color: white;
+	border: none;
+	border-radius: 50%;
+	cursor: pointer;
+	font-size: 14px;
+	margin-left: 10px;
+	line-height: 14px;
+}
+
+footer button:hover {
+	background-color: #357abd;
+}
+
+.hide {
+	display: none !important;
+}
+
+.small-option {
+	font-size: 14px;
+	color: rgb(88, 88, 88);
+}
+
+/* Spinner styles */
+.spinner {
+	width: 50px;
+	height: 50px;
+	border: 6px solid rgba(255, 255, 255, 0.3); /* Light outer ring */
+	border-top: 6px solid #ffffff; /* White top border for animation */
+	border-radius: 50%; /* Make it round */
+	animation: spin 1s linear infinite; /* Infinite spin animation */
+  }
+
+  /* Keyframes for spinner animation */
+  @keyframes spin {
+	0% {
+	  transform: rotate(0deg);
+	}
+	100% {
+	  transform: rotate(360deg);
+	}
+  }

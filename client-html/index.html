@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paranoia Chat</title> 
+	<script>var module = {};</script>
+	<script src="../common/common.js" defer>var module = {};</script>
+	<script src="esteganography.js" defer></script>
+    <script src="paranoia.js" defer></script> 
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+     
+	<header class="step-height-header">
+		<div class="top-bar">
+			<div>PARANOIA CHAT</div>
+			<div class="icons">
+				<i id="headerEsteganography" class="icon-image">🧧</i>
+				<i id="headerSettings" class="icon-settings">⚙️</i>
+				<i id="headerBurn" class="icon-logout">🔥</i>
+			</div>
+		</div>
+		<div id="chatStatus" class="status-bar">Ready to connect...</div>
+	</header>
+
+	<main id="chatContent" class="step-height-base">
+		<div class="message received">Hola, ¿cómo estás?</div>
+		<div class="message sent">¡Hola! Muy bien, ¿y tú?</div>
+		<div class="message received">Todo en orden. 😊</div>
+	</main>
+
+	<footer class="step-height-base">
+		<div class="input-container">
+			<textarea id="chatText" placeholder="Your message..." rows="1"></textarea>
+			<button id="chatSend">➤</button>
+		</div>
+	</footer>  
+
+    <div id="step1" class="step step-height-dialog">
+		<center>
+        	<h1>Paranoia Chat</h1>
+        	<button id="newConnection">Connect</button>
+		</center>
+    </div>
+
+    <div id="step2New" class="step step-height-dialog hide">
+		<center>
+			<h1>New Chat</h1> 
+			<input id="newPassword" type="password" placeholder="Secret Phrase"> 
+			<p class="small-option">At least <b>3 different words</b> and <b>12 characters</b></p>
+			<button id="generateConnection">Generate chat</button>
+		</center>
+    </div>
+
+    <div id="step2Connect" class="step step-height-dialog hide">
+		<center>
+			<h1>Join with chat secret</h1> 
+			<textarea id="connectData" rows="4" placeholder="Chat secret"></textarea>
+			<input id="connectPassword" type="password" placeholder="Password"> 
+			<button id="connect">Join</button>
+		</center>
+    </div>
+
+	<div id="settings" class="step step-height-dialog hide">
+		<center>
+			<h1>Settings</h1>
+			<div class="separator"></div>
+
+			<p class="small-option">Change server (wss:// recomended)</p>
+			<input id="settingsServer" type="url" placeholder="wss://..."> 
+			<div class="separator"></div>
+
+			<p class="small-option">Delete text bubbles on page hide</p>
+			<input type="checkbox" id="settingsCleanOnHide" checked>
+			<div class="separator"></div>
+
+			<button id="settingsReset">Reset Connection</button> 
+			<button id="settingsExit">Back</button> 
+		</center>
+    </div>
+
+	<div id="esteganography" class="step step-height-dialog hide">
+		<center>
+			
+			<div class="separator"></div>
+
+			<h1>Hide messages in image</h1>
+			<p class="small-option">The image to hide the message into (jpg):</p>
+			<input id="esteganographyEncodeImage" type="file"  accept="image/jpeg"> 
+			<p class="small-option">Secret passphrase:</p>
+			<input id="esteganographyEncodeText" type="password" placeholder="Secret Phrase"> 
+			<p class="small-option">At least <b>3 different words</b> and <b>12 characters</b></p>
+			<button id="esteganographyEncode">Encode</button>
+
+			<div id="esteganographyEncodeResultBox" class="hide">
+				<p class="small-option">Result:</p>
+				<img id="esteganographyEncodeResult" class="" style="width:400px; max-width: 50%;">
+				<div><a id="esteganographyEncodeDownload" download="image.png">Download Image</a></div>
+				
+			</div>
+			
+			<div class="separator"></div>
+
+			<h1>Get message from image</h1>
+			<p class="small-option">The image with the hidden message:</p>
+			<input id="esteganographyDecodeImage" type="file"  accept="image/jpeg"> 
+			<button id="esteganographyDecode">Decode</button>
+			<p id="esteganographyDecodeResult" class=""></p>
+			<div class="separator"></div>
+
+			
+			 
+			<button id="esteganographyExit">Back</button> 
+
+			<canvas class="hide" id="esteganographyCanvas"></canvas>
+		</center>
+    </div>
+ 
+    <div id="loading" class="loading step-height-top hide">
+		<center> 
+			<div id="loadingSpinner" class="spinner"></div>
+
+			<p id="loadingStatus">Loading...</p>
+		</center>
+    </div>
+
+    <div id="error" class="error step step-height-top hide"> 
+		<center> 
+			<p id="errorText">Error!</p>
+			<button id="errorRestart">Restart</button>
+		</center>
+    </div>
+</body>
+</html>
