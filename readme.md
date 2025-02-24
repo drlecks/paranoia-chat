@@ -44,7 +44,7 @@ To deploy the server locally, follow these steps:
 
 ```bash
 # Clone the repository
-git clone [https://github.com/yourrepo.git](https://github.com/drlecks/paranoia-chat.git)
+git clone https://github.com/drlecks/paranoia-chat.git
 cd paranoia-chat/server
 
 # Install dependencies
