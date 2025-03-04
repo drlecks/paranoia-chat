@@ -264,8 +264,8 @@ class StepManager
  
 class Connection
 {  
-    socketUrl               = "ws://localhost:8080";
-    //socketUrl             = "wss://paranoia-chat.onrender.com";
+    //socketUrl               = "ws://localhost:8080";
+    socketUrl               = "wss://paranoia-chat.onrender.com";
     socket                  = null;
     sessionToken            = "";
     meHandshakeInitiator    = false;
