@@ -49,14 +49,16 @@ class Esteganography {
      * @param {number} height - original height.
      * @returns {number[]} imageData - image data array.
      */
-    static matrixToImageData(matrix, width, height, ctx) {
+    static matrixToImageData(matrix, ctx) {
+        const width = matrix[0].length;
+        const height = matrix.length;
         let imageData = ctx.createImageData(width, height);
         let data = imageData.data;
-        
+
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
-                let i = (y * width + x) * 4;
                 let pixel = matrix[y][x];
+                let i = (y * width + x) * 4;
                 data[i] = pixel.r;
                 data[i + 1] = pixel.g;
                 data[i + 2] = pixel.b;
@@ -309,16 +311,22 @@ class Esteganography {
                 let pixels = Esteganography.imageDataToMatrix(imageDataOriginal .data, canvas.width, canvas.height);
                 pixels = Esteganography.cropToMultipleOf8(pixels);
 
+                // Adjust the canvas size to the image
+                canvas.width = pixels[0].length;
+                canvas.height = pixels.length; 
+
                 // Insert a hidden message 
                 const modifiedPixels = Esteganography.insertMessage(pixels, message);
-                const imageDataTransformed = Esteganography.matrixToImageData(modifiedPixels, canvas.width, canvas.height, ctx);
+                const imageDataTransformed = Esteganography.matrixToImageData(modifiedPixels, ctx);
                 // Save the image with the hidden data
                 ctx.putImageData(imageDataTransformed, 0, 0);
 
                 // Convert the canvas to an image
                 const imageUrl = canvas.toDataURL("image/png");
                 outputImageHtml.src = imageUrl;
-                if (outputDownloadAHtml != null) outputDownloadAHtml.href = imageUrl;
+                if (outputDownloadAHtml != null) {
+                    outputDownloadAHtml.href = imageUrl;
+                }
             };
             img.src = e.target.result;
         };
