@@ -137,8 +137,8 @@ class StepManager
         this.hideAll();
         Utils.removeClass(this.containerLoading, 'hide'); 
 
-        if (status == '')   this.stepLoading_Status.innerHTML = "Loading...";
-        else                this.stepLoading_Status.innerHTML = status;
+        // Text, not HTML: the status can come from the network.
+        this.stepLoading_Status.textContent = status == '' ? "Loading..." : status;
  
         Utils.removeClass(this.stepLoading_Spinner, 'hide');
         Utils.addClass(this.stepLoading_CopyContainer, 'hide');
@@ -152,8 +152,9 @@ class StepManager
         this.hideAll();
         Utils.removeClass(this.containerError, 'hide'); 
 
-        if (text == '') this.stepLoading_Status.innerHTML = "Error, try it again!";
-        else            this.stepError_Text.innerHTML = text; 
+        // Text, not HTML: error text from the server is not signed, so it must never become markup.
+        if (text == '') this.stepLoading_Status.textContent = "Error, try it again!";
+        else            this.stepError_Text.textContent = text; 
 
         console.error("Show Error: " + text);
     }

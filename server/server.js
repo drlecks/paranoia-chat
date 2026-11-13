@@ -3,7 +3,9 @@ const crypto = require('crypto');
 const { Utils, UtilsAsymetric, EToServer, EFromServer, CommonConfig } = require('../common/common');
  
 const port = process.env.PORT || 8080;
-const server = new WebSocket.Server({ port });
+// Chat messages are small encrypted JSON; ws would otherwise accept up to 100 MiB per message.
+const MAX_MESSAGE_BYTES = 256 * 1024;
+const server = new WebSocket.Server({ port, maxPayload: MAX_MESSAGE_BYTES });
 const doLog = true; 
 
 clog(`WebSocket server running on port ${port}`);
@@ -16,8 +18,9 @@ class Chat {
 }
  
  
-// Store registered clients with their tokens
-const chats = {};
+// Store registered clients with their tokens. No prototype: a token such as "__proto__" is just a missing key.
+const chats = Object.create(null);
+const TOKEN_FORMAT = /^[a-f0-9]{64}$/;
 var clientCont = 0;
 
 function clog(message) {
@@ -42,7 +45,7 @@ async function getAllFromReceived(received) {
     res.data = await UtilsAsymetric.hybridDecrypt(myEncryptKey.privateKey, received );  
     
     // Validate the token format
-    if (!/^[a-f0-9]{64}$/.test(res.data.token)) {
+    if (!TOKEN_FORMAT.test(res.data.token)) {
         res.success = false;
         res.error = 'Invalid token format received';
         cerror(res.data);
@@ -73,9 +76,11 @@ var mySignKey = {};
 server.on('connection', (ws) => {
     clog('New client connected');
 
-    ws.on('message', (message) => {
+    // async with its own try/catch: an error in an awaited step (bad JSON, a bad key) is answered here instead of
+    // becoming an unhandled rejection, which stops the whole Node process.
+    ws.on('message', async (message) => {
         try {
-            (async () => { 
+            {
                 const received  = JSON.parse(message);
                 const type      = received.type;
 
@@ -86,7 +91,10 @@ server.on('connection', (ws) => {
                 } else if (type === EToServer.LINK) {
 
                     const token      = received.token; 
-                    if (!chats[token]) {
+                    if (typeof token !== 'string' || !TOKEN_FORMAT.test(token)) {
+                        await returnDataToClient(ws, EFromServer.ERROR, btoa('Invalid token format received'));
+                    }
+                    else if (!chats[token]) {
                         const chat = new Chat();
                         chat.token          = token;
                         chat.client1        = ws;
@@ -141,12 +149,12 @@ server.on('connection', (ws) => {
                         await returnDataToClient(sendClient, EFromServer.MESSAGE, JSON.stringify(res.data) );
                     } 
                 }
-            })();
+            }
         } catch (err) {
-            cerror('Error processing message:', err);
-            ws.send(
-                JSON.stringify({status: EFromServer.ERROR, message: 'Invalid message. ' + err})
-            );
+            cerror('Error processing message: ' + err);
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ status: EFromServer.ERROR, message: 'Invalid message.' }));
+            }
         }
     });
 
