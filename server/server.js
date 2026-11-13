@@ -161,17 +161,15 @@ server.on('connection', (ws) => {
     ws.on('close', () => {
         clog('Client disconnected');
         // Remove the disconnected client from the list
+        // Remove the chat and close the other side: it shows "Connection closed" instead of waiting on a dead chat.
         Object.keys(chats).forEach((key) => {
-            if (chats[key].client1 === ws) {
-                if (chats[key].client2 === ws)
-                    chats[key].client2.close(1000, 'Other client disconnected');
-                delete chats[key];
-                clog(`Client with token ${key} removed`);
-            } else if (chats[key].client2 === ws) {
-                if (chats[key].client1 === ws)
-                    chats[key].client1.close(1000, 'Other client disconnected');
-                delete chats[key];
-                clog(`Client with token ${key} removed`);
+            const chat = chats[key];
+            if (chat.client1 !== ws && chat.client2 !== ws) return;
+            const other = chat.client1 === ws ? chat.client2 : chat.client1;
+            delete chats[key];
+            clog(`Client with token ${key} removed`);
+            if (other instanceof WebSocket && other.readyState === WebSocket.OPEN) {
+                other.close(1000, 'Other client disconnected');
             }
         });
     });
